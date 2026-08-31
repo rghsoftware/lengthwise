@@ -1,0 +1,17 @@
+lengthwise: 1
+
+entities:
+  - { id: DR-001, type: decision, title: Repository artifacts are authoritative, lifecycle: accepted, decision: "Git-tracked repository artifacts are the authoritative engineering truth." }
+  - { id: DR-002, type: decision, title: Project Graph is derived, lifecycle: accepted, decision: "The Project Graph is rebuilt from authoritative repository artifacts." }
+  - { id: DR-003, type: decision, title: Derived and operational state are separated, lifecycle: accepted, decision: "Derived graph/index state and operational workflow/runtime state are stored separately." }
+  - { id: DR-004, type: decision, title: SQLite is the initial persistence technology, lifecycle: accepted, decision: "Use local SQLite for the derived graph index and initial operational state." }
+  - { id: DR-005, type: decision, title: Workspace abstracts Git worktrees, lifecycle: accepted, decision: "Workspace is a first-class domain abstraction; Git worktrees are the initial implementation." }
+  - { id: DR-006, type: decision, title: Agent runtimes are provider adapters, lifecycle: accepted, decision: "AI and human implementers participate through a provider abstraction." }
+  - { id: DR-007, type: decision, title: Human approval occurs only at material decision boundaries, lifecycle: accepted, decision: "Deterministic checks precede human judgment; human gates are not required at every phase." }
+  - { id: DR-008, type: decision, title: Architecture and traceability are Project Graph projections, lifecycle: accepted, decision: "Architecture Explorer, Execution DAG, and Traceability Explorer are projections of the same engineering model." }
+  - { id: DR-009, type: decision, title: Implementation and engineering artifacts must converge, lifecycle: accepted, decision: "Implementation and governing artifacts must agree before completion." }
+  - { id: DR-010, type: decision, title: Artifact location is flexible; artifact semantics are prescribed, lifecycle: accepted, decision: "Projects choose physical artifact locations through include/exclude rules while Lengthwise prescribes recognition and semantic contracts." }
+  - { id: DR-011, type: decision, title: Use Typia for runtime validation and schema generation, lifecycle: accepted, decision: "TypeScript types are the canonical in-code domain model and Typia generates validation at untrusted boundaries." }
+  - { id: DR-012, type: decision, title: Semantic type and storage representation are independent, lifecycle: accepted, decision: "Entity semantic type does not dictate YAML versus Markdown or require heavyweight standalone documents." }
+  - { id: DR-013, type: decision, title: Entity lifecycle is type-specific; dynamic and runtime states are separate, lifecycle: accepted, decision: "Each entity type has appropriate lifecycle states; readiness, satisfaction, verification results, and runtime state are derived or operational." }
+  - { id: DR-014, type: decision, title: Rigor is inherited policy; significance is intrinsic to the change, lifecycle: accepted, decision: "Rigor inherits from the nearest explicit policy scope while significance is explicit on the relevant change." }

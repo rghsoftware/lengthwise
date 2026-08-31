@@ -1,0 +1,662 @@
+lengthwise: 1
+entities:
+- id: REQ-001
+  type: requirement
+  title: Project configuration
+  lifecycle: accepted
+  statement: Lengthwise shall load project configuration from .lengthwise/project.yaml
+    and validate it before project operations.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-001-01
+  - type: has-acceptance-criterion
+    to: AC-001-02
+  - type: has-acceptance-criterion
+    to: AC-001-03
+- id: AC-001-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a repository containing valid Lengthwise project configuration,
+    Lengthwise recognizes the repository as a Lengthwise project and loads its artifact-discovery
+    configuration.
+- id: AC-001-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given invalid Lengthwise project configuration, Lengthwise reports a
+    deterministic validation error identifying the invalid configuration and its source
+    location.
+- id: AC-001-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a repository without Lengthwise project configuration, an operation
+    requiring a Lengthwise project fails with a clear diagnostic rather than silently
+    assuming configuration.
+- id: REQ-002
+  type: requirement
+  title: Flexible artifact discovery
+  lifecycle: accepted
+  statement: Lengthwise shall discover candidate artifact files using configured include
+    and exclude patterns.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-002-01
+  - type: has-acceptance-criterion
+    to: AC-002-02
+  - type: has-acceptance-criterion
+    to: AC-002-03
+  - type: has-acceptance-criterion
+    to: AC-002-04
+- id: AC-002-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a supported candidate file whose path matches an include pattern
+    and no exclude pattern, the file is included in the artifact-recognition input
+    set.
+- id: AC-002-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a candidate file whose path matches both an include and an exclude
+    pattern, the file is excluded from the artifact-recognition input set.
+- id: AC-002-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Moving a recognized artifact from one included location to another included
+    location does not change the identities or semantics of entities declared by that
+    artifact.
+- id: AC-002-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Files that do not match configured artifact discovery rules do not contribute
+    entities or relationships to the Project Graph.
+- id: REQ-003
+  type: requirement
+  title: Artifact recognition
+  lifecycle: accepted
+  statement: Lengthwise shall recognize supported YAML and Markdown artifacts only
+    when they explicitly declare supported Lengthwise metadata.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-003-01
+  - type: has-acceptance-criterion
+    to: AC-003-02
+  - type: has-acceptance-criterion
+    to: AC-003-03
+  - type: has-acceptance-criterion
+    to: AC-003-04
+  - type: has-acceptance-criterion
+    to: AC-003-05
+- id: AC-003-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: 'Given YAML within discovery scope containing supported lengthwise: 1
+    metadata and valid Lengthwise content, indexing recognizes it as a Lengthwise
+    artifact.'
+- id: AC-003-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: 'Given Markdown within discovery scope containing frontmatter with lengthwise:
+    1 and valid Lengthwise metadata, indexing recognizes it as a Lengthwise artifact.'
+- id: AC-003-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given otherwise valid YAML or Markdown within discovery scope without
+    Lengthwise metadata, indexing does not interpret the file as a Lengthwise artifact.
+- id: AC-003-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an artifact declaring an unsupported Lengthwise metadata version,
+    indexing reports the incompatibility and does not silently interpret it as another
+    version.
+- id: AC-003-05
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a marked Lengthwise artifact whose declared content is invalid,
+    Lengthwise identifies it as Lengthwise-owned and reports validation failure rather
+    than silently ignoring it.
+- id: REQ-004
+  type: requirement
+  title: Stable entity identity
+  lifecycle: accepted
+  statement: Every recognized engineering entity shall have an explicit stable identifier
+    independent of artifact path.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-004-01
+  - type: has-acceptance-criterion
+    to: AC-004-02
+  - type: has-acceptance-criterion
+    to: AC-004-03
+  - type: has-acceptance-criterion
+    to: AC-004-04
+- id: AC-004-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Every recognized entity has an explicit stable identifier usable to address
+    it independently of its containing artifact.
+- id: AC-004-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given two recognized entities declaring the same identifier, lw check
+    reports a duplicate-identity error identifying both source declarations.
+- id: AC-004-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Moving an entity's containing artifact between valid included locations
+    does not change the entity's identity.
+- id: AC-004-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Changing an artifact's filename or directory does not implicitly create
+    a new entity identity when its declared identifier remains unchanged.
+- id: REQ-005
+  type: requirement
+  title: Typed entities
+  lifecycle: accepted
+  statement: Every recognized entity shall declare a supported semantic entity type
+    and satisfy that type's applicable constraints.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-005-01
+  - type: has-acceptance-criterion
+    to: AC-005-02
+  - type: has-acceptance-criterion
+    to: AC-005-03
+  - type: has-acceptance-criterion
+    to: AC-005-04
+- id: AC-005-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Every recognized entity declares a supported entity type and is represented
+    in the Project Graph as that type.
+- id: AC-005-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an entity declaring an unsupported type, Lengthwise reports a deterministic
+    validation error identifying the entity and unsupported type.
+- id: AC-005-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an entity violating a required semantic constraint of its declared
+    type, Lengthwise reports the violation against that entity.
+- id: AC-005-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Querying an indexed entity returns the same semantic entity type declared
+    by the authoritative repository artifact.
+- id: REQ-006
+  type: requirement
+  title: Multiple entities per artifact
+  lifecycle: accepted
+  statement: Supported structured artifact representations shall be able to declare
+    multiple independently addressable entities.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-006-01
+  - type: has-acceptance-criterion
+    to: AC-006-02
+  - type: has-acceptance-criterion
+    to: AC-006-03
+  - type: has-acceptance-criterion
+    to: AC-006-04
+- id: AC-006-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a supported structured artifact containing multiple valid entity
+    declarations, indexing creates each declared entity independently in the Project
+    Graph.
+- id: AC-006-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Entities declared within the same artifact remain independently addressable
+    by their stable identifiers.
+- id: AC-006-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Relationships declared for one entity in a multi-entity artifact are
+    attributed to that entity and not implicitly attributed to neighboring entities.
+- id: AC-006-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: A representation is required to support multiple entities only where
+    its supported Lengthwise representation explicitly provides a multi-entity form.
+- id: REQ-007
+  type: requirement
+  title: Typed relationships
+  lifecycle: accepted
+  statement: Lengthwise shall represent typed directional relationships whose source
+    and target types satisfy registered relationship constraints.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-007-01
+  - type: has-acceptance-criterion
+    to: AC-007-02
+  - type: has-acceptance-criterion
+    to: AC-007-03
+  - type: has-acceptance-criterion
+    to: AC-007-04
+  - type: has-acceptance-criterion
+    to: AC-007-05
+- id: AC-007-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given two valid entities and a valid declared relationship between their
+    types, indexing exposes the relationship with its declared type and direction.
+- id: AC-007-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given TASK-001 IMPLEMENTS REQ-001, querying relationships originating
+    from TASK-001 exposes REQ-001 as the target of IMPLEMENTS.
+- id: AC-007-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given TASK-001 IMPLEMENTS REQ-001, querying REQ-001 using the inverse
+    projection exposes TASK-001 as IMPLEMENTED_BY without requiring a second authoritative
+    relationship declaration.
+- id: AC-007-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a relationship whose source and target entity types violate its
+    relationship definition, lw check reports the invalid relationship.
+- id: AC-007-05
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a declared relationship whose target entity does not exist, lw
+    check reports a dangling relationship identifying source, relationship type, and
+    missing target.
+- id: REQ-008
+  type: requirement
+  title: Relationship provenance
+  lifecycle: accepted
+  statement: Every Project Graph relationship shall expose provenance sufficient to
+    distinguish declared, derived, observed, and inferred authority semantics.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-008-01
+  - type: has-acceptance-criterion
+    to: AC-008-02
+  - type: has-acceptance-criterion
+    to: AC-008-03
+  - type: has-acceptance-criterion
+    to: AC-008-04
+- id: AC-008-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Every relationship exposed by the Project Graph identifies its provenance
+    as declared, derived, observed, or inferred.
+- id: AC-008-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: A relationship explicitly authored in an authoritative repository artifact
+    is distinguishable from a relationship produced by Lengthwise itself.
+- id: AC-008-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a derived relationship, Lengthwise can identify the information
+    from which it was derived sufficiently to explain why the relationship exists.
+- id: AC-008-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: A relationship whose provenance is non-authoritative does not satisfy
+    a deterministic traceability requirement that requires authoritative evidence.
+- id: REQ-009
+  type: requirement
+  title: Graph validation
+  lifecycle: accepted
+  statement: Lengthwise shall deterministically validate structural Project Graph
+    constraints and report actionable findings.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-009-01
+  - type: has-acceptance-criterion
+    to: AC-009-02
+  - type: has-acceptance-criterion
+    to: AC-009-03
+  - type: has-acceptance-criterion
+    to: AC-009-04
+  - type: has-acceptance-criterion
+    to: AC-009-05
+- id: AC-009-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a project whose recognized entities and relationships satisfy all
+    applicable structural constraints, graph validation completes without structural
+    errors.
+- id: AC-009-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given multiple independent recoverable graph violations, validation reports
+    the applicable violations rather than stopping after the first.
+- id: AC-009-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Each graph violation identifies enough information to locate the responsible
+    entity, relationship, or artifact.
+- id: AC-009-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given unchanged authoritative repository artifacts and the same Lengthwise
+    version and configuration, repeated validation produces semantically equivalent
+    results.
+- id: AC-009-05
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given task dependencies containing a cycle, lw check reports the cycle
+    and identifies participating tasks.
+- id: REQ-010
+  type: requirement
+  title: Engineering completeness checks
+  lifecycle: accepted
+  statement: Lengthwise shall detect engineering-definition gaps required by effective
+    rigor policy.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-010-01
+  - type: has-acceptance-criterion
+    to: AC-010-02
+  - type: has-acceptance-criterion
+    to: AC-010-03
+  - type: has-acceptance-criterion
+    to: AC-010-04
+  - type: has-acceptance-criterion
+    to: AC-010-05
+  - type: has-acceptance-criterion
+    to: AC-010-06
+- id: AC-010-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an accepted requirement for which acceptance criteria are required
+    by effective rigor but none are defined, lw check reports the requirement as incomplete.
+- id: AC-010-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an accepted requirement requiring implementation coverage but having
+    no qualifying IMPLEMENTS relationship, lw check reports the traceability gap.
+- id: AC-010-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an acceptance criterion requiring verification but having no required
+    verification definition, lw check reports the verification-coverage gap.
+- id: AC-010-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an acceptance criterion with multiple required verification definitions,
+    the criterion is not considered verified unless each required verification has
+    satisfactory current evidence.
+- id: AC-010-05
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Failure to execute or satisfy a verification definition explicitly designated
+    optional does not by itself prevent its acceptance criterion from being considered
+    verified.
+- id: AC-010-06
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Completeness checking does not require automated-test verification; any
+    supported verification method can contribute evidence according to its verification
+    definition.
+- id: REQ-011
+  type: requirement
+  title: Disposable project index
+  lifecycle: accepted
+  statement: Lengthwise shall maintain a disposable local Project Graph index rebuildable
+    from authoritative repository artifacts.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-011-01
+  - type: has-acceptance-criterion
+    to: AC-011-02
+  - type: has-acceptance-criterion
+    to: AC-011-03
+  - type: has-acceptance-criterion
+    to: AC-011-04
+  - type: has-acceptance-criterion
+    to: AC-011-05
+- id: AC-011-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Deleting the derived project index and rebuilding it from unchanged authoritative
+    artifacts produces a semantically equivalent Project Graph.
+- id: AC-011-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Deleting the derived project index does not destroy authoritative engineering
+    entities, relationships, requirements, decisions, acceptance criteria, or other
+    repository-owned engineering information.
+- id: AC-011-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: After an authoritative artifact changes and the project is reindexed,
+    queries reflect the updated repository state rather than stale indexed state.
+- id: AC-011-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: After a recognized artifact is removed from discovery scope and the project
+    is reindexed, entities and declared relationships originating solely from that
+    artifact no longer appear in the derived graph.
+- id: AC-011-05
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Corruption, deletion, or absence of the disposable index can be recovered
+    by rebuilding from authoritative project artifacts without manual reconstruction
+    of engineering information.
+- id: REQ-012
+  type: requirement
+  title: Basic graph query CLI
+  lifecycle: accepted
+  statement: Lengthwise shall expose initial indexing, validation, entity inspection,
+    traceability, and task-readiness operations through a local CLI.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-012-01
+  - type: has-acceptance-criterion
+    to: AC-012-02
+  - type: has-acceptance-criterion
+    to: AC-012-03
+  - type: has-acceptance-criterion
+    to: AC-012-04
+  - type: has-acceptance-criterion
+    to: AC-012-05
+  - type: has-acceptance-criterion
+    to: AC-012-06
+- id: AC-012-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a valid Lengthwise project, lw index builds or rebuilds the derived
+    Project Graph index and reports whether indexing succeeded.
+- id: AC-012-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an indexed or indexable project, lw check reports deterministic
+    structural and completeness findings and distinguishes blocking validation failure
+    from successful validation.
+- id: AC-012-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an existing entity ID, lw show exposes the entity type, relevant
+    authored properties, source, and relationships.
+- id: AC-012-04
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given an existing entity ID, lw trace exposes relevant connected traceability
+    paths available from the Project Graph.
+- id: AC-012-05
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given tasks with differing dependency states, lw ready identifies tasks
+    whose required dependencies are satisfied and excludes tasks blocked by unsatisfied
+    dependencies.
+- id: AC-012-06
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given a nonexistent entity ID, entity-specific CLI queries return a clear
+    not-found result rather than an ambiguous empty result.
+- id: NFR-001
+  type: non-functional-requirement
+  title: Repository authority
+  lifecycle: accepted
+  statement: Authoritative engineering truth shall remain in Git-tracked repository
+    artifacts.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-001-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-001-02
+- id: AC-NFR-001-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: A fresh Lengthwise installation can reconstruct the authoritative engineering
+    model from repository artifacts without a pre-existing Lengthwise database.
+- id: AC-NFR-001-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Editing or deleting derived Lengthwise state cannot silently alter authoritative
+    engineering definitions stored in the repository.
+- id: NFR-002
+  type: non-functional-requirement
+  title: Brownfield adoption
+  lifecycle: accepted
+  statement: Existing compatible engineering artifacts shall be adoptable with minimal
+    Lengthwise metadata.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-002-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-002-02
+  - type: has-acceptance-criterion
+    to: AC-NFR-002-03
+- id: AC-NFR-002-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Existing Markdown or YAML within discovery scope remains ordinary project
+    content unless explicitly marked as Lengthwise artifacts.
+- id: AC-NFR-002-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: An existing compatible Markdown document can become a recognized Lengthwise
+    artifact by adding minimum supported metadata without rewriting its narrative
+    body into a Lengthwise-specific structure.
+- id: AC-NFR-002-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Adopting one existing document as a Lengthwise artifact does not require
+    unrelated repository documents to be migrated.
+- id: NFR-003
+  type: non-functional-requirement
+  title: Determinism
+  lifecycle: accepted
+  statement: Equivalent inputs under the same Lengthwise version and configuration
+    shall produce semantically equivalent graph and validation results.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-003-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-003-02
+- id: AC-NFR-003-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given identical authoritative artifacts, configuration, and Lengthwise
+    version, repeated indexing produces semantically equivalent entities and relationships.
+- id: AC-NFR-003-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Given identical graph state and validation policy, repeated deterministic
+    checks produce semantically equivalent findings.
+- id: NFR-004
+  type: non-functional-requirement
+  title: Local-first operation
+  lifecycle: accepted
+  statement: F-001 Project Graph capabilities shall operate using the local repository
+    and local runtime without network dependency.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-004-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-004-02
+- id: AC-NFR-004-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Artifact discovery, parsing, graph construction, indexing, validation,
+    and F-001 graph-query CLI can operate using only the local repository and local
+    Lengthwise runtime.
+- id: AC-NFR-004-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Loss or absence of network connectivity does not prevent F-001 Project
+    Graph capabilities from operating against locally available artifacts.
+- id: NFR-005
+  type: non-functional-requirement
+  title: Explainability
+  lifecycle: accepted
+  statement: Relationships and deterministic findings shall expose sufficient source
+    information to explain why they exist.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-005-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-005-02
+  - type: has-acceptance-criterion
+    to: AC-NFR-005-03
+- id: AC-NFR-005-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: For every declared relationship, Lengthwise can identify the authoritative
+    source declaration responsible for it.
+- id: AC-NFR-005-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: For every deterministic validation finding, Lengthwise provides sufficient
+    source and entity information to determine what project information caused it.
+- id: AC-NFR-005-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: For every derived relationship used to satisfy a deterministic graph
+    query or check, Lengthwise can expose why that relationship exists.
+- id: NFR-006
+  type: non-functional-requirement
+  title: Rebuildability
+  lifecycle: accepted
+  statement: Derived Project Graph state shall be safely rebuildable without reconstructing
+    authoritative engineering information manually.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-006-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-006-02
+- id: AC-NFR-006-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: A project remains usable after .lengthwise/index.db is deleted and subsequently
+    rebuilt.
+- id: AC-NFR-006-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Rebuilding derived state requires no manual recreation of information
+    that is part of the authoritative engineering model.
+- id: NFR-007
+  type: non-functional-requirement
+  title: Extensibility
+  lifecycle: accepted
+  statement: Core domain and artifact boundaries shall permit extension without rewriting
+    unrelated existing representations.
+  relationships:
+  - type: has-acceptance-criterion
+    to: AC-NFR-007-01
+  - type: has-acceptance-criterion
+    to: AC-NFR-007-02
+  - type: has-acceptance-criterion
+    to: AC-NFR-007-03
+- id: AC-NFR-007-01
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Adding a new supported entity type does not require changing persisted
+    representation of unrelated existing entity types.
+- id: AC-NFR-007-02
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Adding a new relationship definition does not require rewriting unrelated
+    existing authoritative relationship declarations.
+- id: AC-NFR-007-03
+  type: acceptance-criterion
+  lifecycle: accepted
+  statement: Adding support for another artifact representation does not require changing
+    semantic identities of entities already representable in YAML or Markdown.

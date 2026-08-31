@@ -1,0 +1,240 @@
+lengthwise: 1
+entities:
+- id: VER-001
+  type: verification
+  title: Project Configuration
+  lifecycle: defined
+  method: automated-integration-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-001-01
+  - type: verifies
+    to: AC-001-02
+  - type: verifies
+    to: AC-001-03
+- id: VER-002
+  type: verification
+  title: Artifact Discovery and Recognition
+  lifecycle: defined
+  method: automated-integration-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-002-01
+  - type: verifies
+    to: AC-002-02
+  - type: verifies
+    to: AC-002-03
+  - type: verifies
+    to: AC-002-04
+  - type: verifies
+    to: AC-003-01
+  - type: verifies
+    to: AC-003-02
+  - type: verifies
+    to: AC-003-03
+  - type: verifies
+    to: AC-003-04
+  - type: verifies
+    to: AC-003-05
+  - type: verifies
+    to: AC-004-03
+  - type: verifies
+    to: AC-004-04
+  - type: verifies
+    to: AC-NFR-002-01
+  - type: verifies
+    to: AC-NFR-002-03
+- id: VER-003
+  type: verification
+  title: Brownfield Artifact Adoption
+  lifecycle: defined
+  method: automated-integration-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-003-03
+  - type: verifies
+    to: AC-NFR-002-01
+  - type: verifies
+    to: AC-NFR-002-02
+  - type: verifies
+    to: AC-NFR-002-03
+- id: VER-004
+  type: verification
+  title: Entity Normalization and Identity
+  lifecycle: defined
+  method: automated-behavioral-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-004-01
+  - type: verifies
+    to: AC-004-02
+  - type: verifies
+    to: AC-004-03
+  - type: verifies
+    to: AC-004-04
+  - type: verifies
+    to: AC-005-01
+  - type: verifies
+    to: AC-005-02
+  - type: verifies
+    to: AC-005-03
+  - type: verifies
+    to: AC-005-04
+  - type: verifies
+    to: AC-006-01
+  - type: verifies
+    to: AC-006-02
+  - type: verifies
+    to: AC-006-03
+  - type: verifies
+    to: AC-006-04
+- id: VER-005
+  type: verification
+  title: Relationship Semantics
+  lifecycle: defined
+  method: automated-behavioral-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-007-01
+  - type: verifies
+    to: AC-007-02
+  - type: verifies
+    to: AC-007-03
+  - type: verifies
+    to: AC-007-04
+  - type: verifies
+    to: AC-007-05
+- id: VER-006
+  type: verification
+  title: Relationship Provenance and Authority
+  lifecycle: defined
+  method: automated-behavioral-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-008-01
+  - type: verifies
+    to: AC-008-02
+  - type: verifies
+    to: AC-008-03
+  - type: verifies
+    to: AC-008-04
+  - type: verifies
+    to: AC-NFR-005-01
+  - type: verifies
+    to: AC-NFR-005-03
+- id: VER-007
+  type: verification
+  title: Structural Graph Validation
+  lifecycle: defined
+  method: automated-integration-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-009-01
+  - type: verifies
+    to: AC-009-02
+  - type: verifies
+    to: AC-009-03
+  - type: verifies
+    to: AC-009-04
+  - type: verifies
+    to: AC-009-05
+  - type: verifies
+    to: AC-NFR-003-02
+  - type: verifies
+    to: AC-NFR-005-02
+- id: VER-008
+  type: verification
+  title: Engineering Completeness and Rigor
+  lifecycle: defined
+  method: automated-policy-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-010-01
+  - type: verifies
+    to: AC-010-02
+  - type: verifies
+    to: AC-010-03
+  - type: verifies
+    to: AC-010-04
+  - type: verifies
+    to: AC-010-05
+  - type: verifies
+    to: AC-010-06
+- id: VER-009
+  type: verification
+  title: Index Rebuild and Repository Authority
+  lifecycle: defined
+  method: automated-end-to-end-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-011-01
+  - type: verifies
+    to: AC-011-02
+  - type: verifies
+    to: AC-011-03
+  - type: verifies
+    to: AC-011-04
+  - type: verifies
+    to: AC-011-05
+  - type: verifies
+    to: AC-NFR-001-01
+  - type: verifies
+    to: AC-NFR-001-02
+  - type: verifies
+    to: AC-NFR-003-01
+  - type: verifies
+    to: AC-NFR-006-01
+  - type: verifies
+    to: AC-NFR-006-02
+- id: VER-010
+  type: verification
+  title: Local-First Operation
+  lifecycle: defined
+  method: automated-integration-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-NFR-004-01
+  - type: verifies
+    to: AC-NFR-004-02
+- id: VER-011
+  type: verification
+  title: CLI User Contract
+  lifecycle: defined
+  method: automated-end-to-end-test
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-012-01
+  - type: verifies
+    to: AC-012-02
+  - type: verifies
+    to: AC-012-03
+  - type: verifies
+    to: AC-012-04
+  - type: verifies
+    to: AC-012-05
+  - type: verifies
+    to: AC-012-06
+- id: VER-012
+  type: verification
+  title: Extension Boundaries
+  lifecycle: defined
+  method: automated-test-plus-code-inspection
+  required: true
+  relationships:
+  - type: verifies
+    to: AC-NFR-007-01
+  - type: verifies
+    to: AC-NFR-007-02
+  - type: verifies
+    to: AC-NFR-007-03

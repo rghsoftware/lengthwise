@@ -1,0 +1,43 @@
+lengthwise: 1
+
+project:
+  name: Lengthwise
+
+artifacts:
+  include:
+    - "engineering/**/*.md"
+    - "engineering/**/*.yaml"
+  exclude:
+    - "engineering/archive/**"
+
+policy:
+  rigor: standard
+
+rigor:
+  light:
+    requirements: required
+    acceptanceCriteria: required
+    implementationTraceability: basic
+    verificationCoverage: required
+    taskPlan: as-needed
+    materialDecisions: recorded
+    humanApproval: [specification]
+
+  standard:
+    requirements: required
+    acceptanceCriteria: required
+    implementationTraceability: required
+    verificationCoverage: required
+    taskPlan: required
+    materialDecisions: recorded
+    humanApproval: [specification, buildContract]
+
+  strict:
+    requirements: required
+    acceptanceCriteria: required
+    implementationTraceability: required
+    verificationCoverage: required
+    taskPlan: required
+    materialDecisions: recorded
+    independentReview: generally-required
+    humanApproval: [specification, buildContract, verification]

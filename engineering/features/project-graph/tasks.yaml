@@ -1,0 +1,144 @@
+lengthwise: 1
+entities:
+- id: TASK-001
+  type: task
+  title: Define domain types and relationship registry
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-004
+  - type: implements
+    to: REQ-005
+  - type: implements
+    to: REQ-007
+  - type: implements
+    to: REQ-008
+  - type: implements
+    to: NFR-007
+- id: TASK-002
+  type: task
+  title: Implement project configuration and artifact discovery
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-001
+  - type: implements
+    to: REQ-002
+  - type: implements
+    to: NFR-002
+  - type: implements
+    to: NFR-004
+- id: TASK-003
+  type: task
+  title: Implement YAML artifact parser
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-003
+  - type: implements
+    to: REQ-006
+  - type: implements
+    to: NFR-002
+- id: TASK-004
+  type: task
+  title: Implement Markdown and frontmatter parser
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-003
+  - type: implements
+    to: NFR-002
+- id: TASK-005
+  type: task
+  title: Normalize parsed artifacts into graph entities
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-005
+  - type: implements
+    to: REQ-006
+  - type: implements
+    to: REQ-008
+  - type: implements
+    to: NFR-003
+  - type: implements
+    to: NFR-005
+  - type: implements
+    to: NFR-007
+  - type: depends-on
+    to: TASK-001
+  - type: depends-on
+    to: TASK-003
+  - type: depends-on
+    to: TASK-004
+- id: TASK-006
+  type: task
+  title: Implement in-memory Project Graph
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-007
+  - type: implements
+    to: REQ-008
+  - type: implements
+    to: NFR-001
+  - type: implements
+    to: NFR-003
+  - type: implements
+    to: NFR-005
+  - type: depends-on
+    to: TASK-005
+- id: TASK-007
+  type: task
+  title: Implement deterministic graph and completeness checks
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-009
+  - type: implements
+    to: REQ-010
+  - type: implements
+    to: NFR-003
+  - type: implements
+    to: NFR-005
+  - type: depends-on
+    to: TASK-006
+- id: TASK-008
+  type: task
+  title: Implement disposable SQLite graph index
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-011
+  - type: implements
+    to: NFR-001
+  - type: implements
+    to: NFR-003
+  - type: implements
+    to: NFR-004
+  - type: implements
+    to: NFR-006
+  - type: depends-on
+    to: TASK-006
+- id: TASK-009
+  type: task
+  title: Implement Project Graph CLI
+  lifecycle: planned
+  relationships:
+  - type: implements
+    to: REQ-012
+  - type: implements
+    to: NFR-004
+  - type: implements
+    to: NFR-005
+  - type: depends-on
+    to: TASK-007
+  - type: depends-on
+    to: TASK-008
+- id: TASK-010
+  type: task
+  title: Dogfood Lengthwise repository artifacts
+  lifecycle: planned
+  relationships:
+  - type: depends-on
+    to: TASK-009

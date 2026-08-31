@@ -1,0 +1,20 @@
+{
+  "name": "lengthwise",
+  "module": "index.ts",
+  "bin": {
+    "lw": "src/cli/main.ts"
+  },
+  "scripts": {
+    "lw": "bun src/cli/main.ts"
+  },
+  "dependencies": {
+    "typia": "^14.0.4"
+  },
+  "devDependencies": {
+    "@ttsc/unplugin": "^0.28.4",
+    "@types/bun": "latest",
+    "typescript": "7.0.2"
+  },
+  "private": true,
+  "type": "module"
+}

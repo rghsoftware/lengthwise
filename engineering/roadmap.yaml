@@ -1,0 +1,13 @@
+lengthwise: 1
+entities:
+  - { id: R-001, type: roadmap-item, title: Bootstrap project baseline, lifecycle: complete }
+  - id: R-002
+    type: roadmap-item
+    title: Project Graph
+    lifecycle: active
+    relationships: [{ type: realized-by, to: F-001 }]
+  - { id: R-003, type: roadmap-item, title: Visual Workbench, lifecycle: planned }
+  - { id: R-004, type: roadmap-item, title: Feature Workflow, lifecycle: planned }
+  - { id: R-005, type: roadmap-item, title: Build Contracts and Codex, lifecycle: planned }
+  - { id: R-006, type: roadmap-item, title: Parallel Workspaces, lifecycle: planned }
+  - { id: R-007, type: roadmap-item, title: Multi-machine evaluation, lifecycle: planned }
