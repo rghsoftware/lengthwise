@@ -185,6 +185,6 @@ test("lw check, show, trace, and ready work against this repository's own artifa
 
   const ready = await runCli(["ready"], repoRoot);
   expect(ready.exitCode).toBe(0);
-  // TASK-001 has no dependencies, so it is always ready.
-  expect((ready.data as { ready: string[] }).ready).toContain("TASK-001");
+  // F-001's tasks are all done, so none are candidates for readiness.
+  expect((ready.data as { ready: string[] }).ready).toEqual([]);
 });

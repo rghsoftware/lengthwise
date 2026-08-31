@@ -3,7 +3,7 @@ lengthwise: 1
 id: F-001
 type: feature
 title: Project Graph
-lifecycle: ready
+lifecycle: complete
 significance: L
 ---
 

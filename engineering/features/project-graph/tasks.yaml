@@ -3,7 +3,7 @@ entities:
 - id: TASK-001
   type: task
   title: Define domain types and relationship registry
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-004
@@ -18,7 +18,7 @@ entities:
 - id: TASK-002
   type: task
   title: Implement project configuration and artifact discovery
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-001
@@ -31,7 +31,7 @@ entities:
 - id: TASK-003
   type: task
   title: Implement YAML artifact parser
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-003
@@ -42,7 +42,7 @@ entities:
 - id: TASK-004
   type: task
   title: Implement Markdown and frontmatter parser
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-003
@@ -51,7 +51,7 @@ entities:
 - id: TASK-005
   type: task
   title: Normalize parsed artifacts into graph entities
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-005
@@ -74,7 +74,7 @@ entities:
 - id: TASK-006
   type: task
   title: Implement in-memory Project Graph
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-007
@@ -91,7 +91,7 @@ entities:
 - id: TASK-007
   type: task
   title: Implement deterministic graph and completeness checks
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-009
@@ -106,7 +106,7 @@ entities:
 - id: TASK-008
   type: task
   title: Implement disposable SQLite graph index
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-011
@@ -123,7 +123,7 @@ entities:
 - id: TASK-009
   type: task
   title: Implement Project Graph CLI
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: implements
     to: REQ-012
@@ -138,7 +138,7 @@ entities:
 - id: TASK-010
   type: task
   title: Dogfood Lengthwise repository artifacts
-  lifecycle: planned
+  lifecycle: done
   relationships:
   - type: depends-on
     to: TASK-009

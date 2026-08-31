@@ -4,7 +4,7 @@ entities:
   - id: R-002
     type: roadmap-item
     title: Project Graph
-    lifecycle: active
+    lifecycle: complete
     relationships: [{ type: realized-by, to: F-001 }]
   - { id: R-003, type: roadmap-item, title: Visual Workbench, lifecycle: planned }
   - { id: R-004, type: roadmap-item, title: Feature Workflow, lifecycle: planned }
