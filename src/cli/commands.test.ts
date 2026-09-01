@@ -194,6 +194,6 @@ test("lw check, show, trace, and ready work against this repository's own artifa
 
   const ready = await runCli(["ready"], repoRoot);
   expect(ready.exitCode).toBe(0);
-  // Automated F-002 implementation is complete; human usability evaluation remains ready.
-  expect((ready.data as { ready: string[] }).ready).toEqual(["TASK-019"]);
+  // F-002 implementation and owner-accepted evaluation are complete.
+  expect((ready.data as { ready: string[] }).ready).toEqual([]);
 });

@@ -9,7 +9,7 @@ entities:
   - id: R-003
     type: roadmap-item
     title: Minimal Workbench
-    lifecycle: active
+    lifecycle: complete
     relationships: [{ type: realized-by, to: F-002 }]
   - { id: R-004, type: roadmap-item, title: Feature Workflow, lifecycle: planned }
   - { id: R-005, type: roadmap-item, title: Build Contracts and Codex, lifecycle: planned }

@@ -8,7 +8,7 @@ lifecycle: accepted
 # F-002 — Minimal Workbench Build Contracts
 
 **Feature:** F-002
-**Lifecycle:** implemented pending human evaluation
+**Lifecycle:** complete
 **Significance:** L
 **Effective rigor:** standard
 

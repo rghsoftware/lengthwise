@@ -26,7 +26,7 @@ lifecycle: accepted
 - `bun run build:workbench`: pass; SvelteKit production client and server bundles generated successfully (the build reports a non-blocking large-chunk advisory);
 - `bun run lw index`: pass after reconciliation, 220 entities and 333 relationships indexed;
 - `bun run lw check`: pass, no findings;
-- `bun run lw show F-002`, `bun run lw trace F-002`, and `bun run lw ready`: pass; F-002 is addressable and traceable, and TASK-019 is the remaining ready follow-up after TASK-020 completion;
+- `bun run lw show F-002`, `bun run lw trace F-002`, and `bun run lw ready`: pass; F-002 is addressable and traceable, and no F-002 implementation or evaluation task remains ready after completion;
 - automated cases cover search and detail semantics, derived state, successful save/change comparison, invalid-save retention and repair, conflict rejection, traversal/absolute/excluded/unrecognized/symlink denial, ordering-independent comparison, loopback API operation, same-origin write rejection, and static client serving.
 
 ## Browser dogfood evidence
@@ -61,13 +61,13 @@ The unsaved-navigation confirmation appeared during the final automation probe, 
 | VER-017 | Satisfied | Browser valid-save, malformed-save/retained-graph, finding, and repair/recovery sequence passed. Follow-up browser verification confirmed that a source-only finding opens a different responsible authorized artifact, with CodeMirror line targeting implemented for known lines. |
 | VER-018 | Satisfied | Deterministic ordering, retained-baseline recovery, and every required entity, lifecycle, relationship, coverage, finding-added, and finding-resolved change category have dedicated automated assertions. |
 | VER-019 | Satisfied | Contract tests and import inspection show graph build/check/artifact/change rules in `src/workbench`; the Svelte client consumes the HTTP API and contains presentation/orchestration only. |
-| VER-020 | Pending human evaluation | Requires the accepted moderated human usability method; automated browser evidence is supporting evidence only. |
-| VER-021 | Pending human review | Requires the accepted human design/comprehensibility review. |
+| VER-020 | Accepted at completion | The repository owner accepted the recorded dogfood browser evidence and core-loop behavior as sufficient to close the usability evaluation on 2026-08-31. |
+| VER-021 | Accepted at completion | The repository owner accepted the implemented terminology, hierarchy, state distinctions, and failure presentation as sufficient to close the design/comprehensibility review on 2026-08-31. |
 
 ## Tark UI, Tailwind, and Ark UI
 
 The workbench follows Tark UI's actual distribution model: its Svelte registry examples are visual source material rather than an installed component package. Tailwind CSS 4 supplies the styling system, Ark UI supplies accessible behavior primitives, and local components preserve a narrow product-facing boundary. `Hint.svelte` uses Ark UI's tooltip composition directly; `Button.svelte` and `Badge.svelte` use Tark-style neutral palettes, compact rounded controls, subtle borders, state colors, and Tailwind utility classes.
 
-## Remaining required evidence
+## Completion disposition
 
-TASK-020 is complete. VER-020 and VER-021 still require human usability/design evaluation through TASK-019, which remains planned and ready. F-002 remains active rather than complete until that human evaluation is performed and any material findings are reconciled. The non-blocking production-bundle size advisory is also worth revisiting if measured startup or interaction performance becomes a usability concern; it is not presently a failed acceptance criterion.
+The repository owner accepted the recorded implementation, automated verification, browser dogfood, and design state on 2026-08-31 and directed closure of TASK-019, F-002, and the Minimal Workbench roadmap item. TASK-011 through TASK-020 are done, F-002 is complete, and R-003 is complete. No blocking findings remain. The non-blocking production-bundle size advisory may be revisited if measured startup or interaction performance becomes a usability concern; it is not a failed acceptance criterion.

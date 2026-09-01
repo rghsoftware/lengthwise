@@ -3,7 +3,7 @@ lengthwise: 1
 id: F-002
 type: feature
 title: Minimal Workbench
-lifecycle: active
+lifecycle: complete
 significance: L
 relationships:
   - { type: addresses, to: REQ-013 }

@@ -78,7 +78,7 @@ entities:
   - id: TASK-019
     type: task
     title: Dogfood and evaluate the minimal workbench core loop
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-018 }
       - { type: implements, to: NFR-012 }
