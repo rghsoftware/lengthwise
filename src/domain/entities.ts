@@ -9,6 +9,7 @@ import type {
   RoadmapItemLifecycle,
   TaskLifecycle,
   VerificationLifecycle,
+  QuestionLifecycle, EvidenceLifecycle, BuildContractLifecycle,
 } from "./lifecycle.ts";
 import type { tags } from "typia";
 
@@ -33,6 +34,7 @@ interface EntityBase<TType extends string, TLifecycle extends string> {
    * available to any entity type rather than hardcoded to document-like ones.
    */
   body?: string;
+  rigor?: "light" | "standard" | "strict";
 }
 
 export interface RequirementEntity extends EntityBase<"requirement", RequirementLifecycle> {
@@ -89,6 +91,17 @@ export interface VerificationEntity extends EntityBase<"verification", Verificat
 export interface RoadmapItemEntity extends EntityBase<"roadmap-item", RoadmapItemLifecycle> {
   title: string & tags.MinLength<1>;
 }
+export interface QuestionEntity extends EntityBase<"question", QuestionLifecycle> {
+  prompt: string & tags.MinLength<1>; blocking: boolean; resolution?: string;
+}
+export interface EvidenceEntity extends EntityBase<"evidence", EvidenceLifecycle> {
+  title: string & tags.MinLength<1>; outcome: "passed" | "failed" | "inconclusive";
+  result: string & tags.MinLength<1>; applicability: string & tags.MinLength<1>;
+}
+export interface BuildContractEntity extends EntityBase<"build-contract", BuildContractLifecycle> {
+  title: string & tags.MinLength<1>; fingerprint: string & tags.MinLength<1>;
+  locked: string[]; bounded: string[]; delegated: string[];
+}
 
 export type Entity =
   | RequirementEntity
@@ -100,7 +113,10 @@ export type Entity =
   | FeatureEntity
   | TaskEntity
   | VerificationEntity
-  | RoadmapItemEntity;
+  | RoadmapItemEntity
+  | QuestionEntity
+  | EvidenceEntity
+  | BuildContractEntity;
 
 export type EntityType = Entity["type"];
 
@@ -115,6 +131,7 @@ export const ENTITY_TYPES: readonly EntityType[] = [
   "task",
   "verification",
   "roadmap-item",
+  "question", "evidence", "build-contract",
 ] as const;
 
 export function isKnownEntityType(value: string): value is EntityType {

@@ -16,11 +16,10 @@ export function checkAcceptanceCriteriaCoverage(
   graph: ProjectGraph,
   config: ProjectConfig,
 ): Diagnostic[] {
-  if (effectiveRigor(config).acceptanceCriteria !== "required") return [];
-
   const diagnostics: Diagnostic[] = [];
   for (const entity of graph.entities) {
     if (!isAcceptedRequirementLike(entity)) continue;
+    if (effectiveRigor(config, graph, entity.id).acceptanceCriteria !== "required") continue;
     const hasAcceptanceCriterion = graph
       .outgoingRelationships(entity.id)
       .some((relationship) => relationship.type === "has-acceptance-criterion");
@@ -41,11 +40,10 @@ export function checkImplementationTraceability(
   graph: ProjectGraph,
   config: ProjectConfig,
 ): Diagnostic[] {
-  if (effectiveRigor(config).implementationTraceability !== "required") return [];
-
   const diagnostics: Diagnostic[] = [];
   for (const entity of graph.entities) {
     if (!isAcceptedRequirementLike(entity)) continue;
+    if (effectiveRigor(config, graph, entity.id).implementationTraceability !== "required") continue;
     const isImplemented = graph
       .incomingRelationships(entity.id)
       .some((relationship) => relationship.type === "implements");
@@ -75,11 +73,10 @@ export function checkVerificationCoverage(
   graph: ProjectGraph,
   config: ProjectConfig,
 ): Diagnostic[] {
-  if (effectiveRigor(config).verificationCoverage !== "required") return [];
-
   const diagnostics: Diagnostic[] = [];
   for (const entity of graph.entities) {
     if (entity.type !== "acceptance-criterion" || entity.lifecycle !== "accepted") continue;
+    if (effectiveRigor(config, graph, entity.id).verificationCoverage !== "required") continue;
     const requiredVerifiers = graph
       .incomingRelationships(entity.id)
       .filter((relationship) => relationship.type === "verifies")

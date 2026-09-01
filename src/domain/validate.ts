@@ -13,6 +13,7 @@ import type {
   RoadmapItemEntity,
   TaskEntity,
   VerificationEntity,
+  QuestionEntity, EvidenceEntity, BuildContractEntity,
 } from "./entities.ts";
 
 type ValidatorFor<TType extends EntityType> = (input: unknown) => IValidation<Extract<Entity, { type: TType }>>;
@@ -29,6 +30,9 @@ export const ENTITY_VALIDATORS: { [K in EntityType]: ValidatorFor<K> } = {
   task: typia.createValidate<TaskEntity>(),
   verification: typia.createValidate<VerificationEntity>(),
   "roadmap-item": typia.createValidate<RoadmapItemEntity>(),
+  question: typia.createValidate<QuestionEntity>(),
+  evidence: typia.createValidate<EvidenceEntity>(),
+  "build-contract": typia.createValidate<BuildContractEntity>(),
 };
 
 export function validateEntity<TType extends EntityType>(

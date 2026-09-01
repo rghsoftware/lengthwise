@@ -49,3 +49,79 @@ entities:
       - { type: governs, to: F-002 }
       - { type: governs, to: NFR-008 }
       - { type: governs, to: NFR-009 }
+  - id: DR-019
+    type: decision
+    title: Questions are durable engineering entities
+    lifecycle: accepted
+    decision: "Represent unresolved engineering questions as first-class Question entities with explicit blocking semantics; an answer becomes governing only after propagation into the appropriate authoritative engineering entity."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-025 }
+  - id: DR-020
+    type: decision
+    title: Verification results are Evidence entities
+    lifecycle: accepted
+    decision: "Represent verification results as first-class Evidence entities with stable identity, outcome, applicability context, provenance, and many-to-many support for Verification definitions."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-033 }
+  - id: DR-021
+    type: decision
+    title: Accepted Build Contracts are authoritative handoff entities
+    lifecycle: accepted
+    decision: "Generate Build Contract candidates deterministically from the Project Graph and persist accepted contracts as first-class authoritative BuildContract entities with sufficient context identity to derive staleness."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-030 }
+      - { type: governs, to: REQ-031 }
+  - id: DR-022
+    type: decision
+    title: Workflow approvals are operational events
+    lifecycle: accepted
+    decision: "Store gate approvals as operational events whose durable engineering effect is an authoritative lifecycle transition or artifact change; F-003 adds no Approval entity."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-028 }
+      - { type: governs, to: REQ-032 }
+  - id: DR-023
+    type: decision
+    title: Workflow runtime uses a separate operational SQLite store
+    lifecycle: accepted
+    decision: "Store resumable workflow runtime and history in .lengthwise/state.db, separate from the disposable .lengthwise/index.db and authoritative Git artifacts."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-023 }
+      - { type: governs, to: NFR-013 }
+  - id: DR-024
+    type: decision
+    title: Completeness remains lifecycle and rigor aware
+    lifecycle: accepted
+    decision: "Structural checks always apply; completeness obligations derive from entity type, lifecycle, and effective rigor rather than workflow phase."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-026 }
+  - id: DR-025
+    type: decision
+    title: Basic rigor inheritance follows graph parentage
+    lifecycle: accepted
+    decision: "Effective rigor resolves from the nearest explicit override, otherwise the parent scope, otherwise project default; F-003 adds no release-phase or subsystem conditional policy rules."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-027 }
+      - { type: governs, to: NFR-017 }
+  - id: DR-026
+    type: decision
+    title: One active workflow run per feature
+    lifecycle: accepted
+    decision: "Permit at most one non-terminal workflow run for a feature while retaining terminal run history operationally."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-021 }
+  - id: DR-027
+    type: decision
+    title: Completion approval is rigor controlled
+    lifecycle: accepted
+    decision: "Derive completion eligibility deterministically and require a final human verification or completion gate only when effective rigor policy requires it."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-036 }

@@ -1,0 +1,162 @@
+lengthwise: 1
+entities:
+  - id: VER-022
+    type: verification
+    title: Workflow Entity and Relationship Semantics
+    lifecycle: defined
+    method: automated-domain-parser-normalization-and-graph-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-025-01 }
+      - { type: verifies, to: AC-025-02 }
+      - { type: verifies, to: AC-025-03 }
+      - { type: verifies, to: AC-033-01 }
+      - { type: verifies, to: AC-033-02 }
+      - { type: verifies, to: AC-033-03 }
+
+  - id: VER-023
+    type: verification
+    title: Lifecycle Completeness and Rigor Inheritance Policy
+    lifecycle: defined
+    method: automated-policy-and-property-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-026-01 }
+      - { type: verifies, to: AC-026-02 }
+      - { type: verifies, to: AC-027-01 }
+      - { type: verifies, to: AC-027-02 }
+      - { type: verifies, to: AC-027-03 }
+      - { type: verifies, to: AC-NFR-017-01 }
+      - { type: verifies, to: AC-NFR-017-02 }
+
+  - id: VER-024
+    type: verification
+    title: Operational State Durability Isolation and Recovery
+    lifecycle: defined
+    method: automated-sqlite-migration-restart-and-failure-integration-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-023-01 }
+      - { type: verifies, to: AC-023-02 }
+      - { type: verifies, to: AC-038-01 }
+      - { type: verifies, to: AC-038-02 }
+      - { type: verifies, to: AC-NFR-013-01 }
+      - { type: verifies, to: AC-NFR-013-02 }
+      - { type: verifies, to: AC-NFR-016-01 }
+      - { type: verifies, to: AC-NFR-016-02 }
+      - { type: verifies, to: AC-NFR-023-01 }
+      - { type: verifies, to: AC-NFR-023-02 }
+
+  - id: VER-025
+    type: verification
+    title: Workflow Start and Repository Reconciliation
+    lifecycle: defined
+    method: automated-application-service-integration-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-021-01 }
+      - { type: verifies, to: AC-021-02 }
+      - { type: verifies, to: AC-024-01 }
+      - { type: verifies, to: AC-024-02 }
+
+  - id: VER-026
+    type: verification
+    title: Authoritative Authoring and Specification Gate
+    lifecycle: defined
+    method: automated-service-and-browser-integration-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-022-01 }
+      - { type: verifies, to: AC-022-02 }
+      - { type: verifies, to: AC-028-01 }
+      - { type: verifies, to: AC-028-02 }
+
+  - id: VER-027
+    type: verification
+    title: Planning Readiness and Completion Eligibility
+    lifecycle: defined
+    method: automated-graph-projection-and-policy-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-029-01 }
+      - { type: verifies, to: AC-029-02 }
+      - { type: verifies, to: AC-036-01 }
+      - { type: verifies, to: AC-036-02 }
+      - { type: verifies, to: AC-036-03 }
+
+  - id: VER-028
+    type: verification
+    title: Build Contract Slice Fingerprint and Staleness
+    lifecycle: defined
+    method: automated-fixture-contract-snapshot-and-mutation-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-030-01 }
+      - { type: verifies, to: AC-030-02 }
+      - { type: verifies, to: AC-030-03 }
+      - { type: verifies, to: AC-031-01 }
+      - { type: verifies, to: AC-031-02 }
+      - { type: verifies, to: AC-NFR-014-01 }
+      - { type: verifies, to: AC-NFR-014-02 }
+      - { type: verifies, to: AC-NFR-018-01 }
+      - { type: verifies, to: AC-NFR-018-02 }
+
+  - id: VER-029
+    type: verification
+    title: Build Contract Gate and Provider-neutral Handoff
+    lifecycle: defined
+    method: automated-service-browser-and-boundary-inspection
+    required: true
+    relationships:
+      - { type: verifies, to: AC-032-01 }
+      - { type: verifies, to: AC-032-02 }
+      - { type: verifies, to: AC-034-01 }
+      - { type: verifies, to: AC-034-02 }
+      - { type: verifies, to: AC-NFR-019-01 }
+      - { type: verifies, to: AC-NFR-019-02 }
+
+  - id: VER-030
+    type: verification
+    title: Reconciliation and Explanation Semantics
+    lifecycle: defined
+    method: automated-scenario-test-plus-output-inspection
+    required: true
+    relationships:
+      - { type: verifies, to: AC-035-01 }
+      - { type: verifies, to: AC-035-02 }
+      - { type: verifies, to: AC-NFR-015-01 }
+      - { type: verifies, to: AC-NFR-015-02 }
+
+  - id: VER-031
+    type: verification
+    title: Workbench Workflow and Local Trust Boundary
+    lifecycle: defined
+    method: automated-http-and-browser-end-to-end-security-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-037-01 }
+      - { type: verifies, to: AC-037-02 }
+      - { type: verifies, to: AC-NFR-020-01 }
+      - { type: verifies, to: AC-NFR-020-02 }
+      - { type: verifies, to: AC-NFR-021-01 }
+      - { type: verifies, to: AC-NFR-021-02 }
+
+  - id: VER-032
+    type: verification
+    title: Evidence Satisfaction and Quality Integrity
+    lifecycle: defined
+    method: automated-many-to-many-applicability-and-deduplication-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-NFR-022-01 }
+      - { type: verifies, to: AC-NFR-022-02 }
+
+  - id: VER-033
+    type: verification
+    title: Feature Workflow Usability Evaluation
+    lifecycle: defined
+    method: moderated-human-usability-evaluation
+    required: true
+    relationships:
+      - { type: verifies, to: AC-NFR-024-01 }
+      - { type: verifies, to: AC-NFR-024-02 }

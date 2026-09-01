@@ -17,6 +17,7 @@ export const RELATIONSHIP_TYPES = [
   "verifies",
   "depends-on",
   "supersedes",
+  "has-question", "concerns", "resolved-by", "supports", "contracts", "includes",
 ] as const;
 
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
@@ -111,6 +112,12 @@ export const RELATIONSHIP_REGISTRY: Record<RelationshipType, RelationshipDefinit
     targetTypes: "same-as-source",
     description: "An entity replaces an earlier entity of the same type.",
   },
+  "has-question": { type: "has-question", inverseLabel: "question-of", sourceTypes: ["feature"], targetTypes: ["question"], description: "A feature has a durable question." },
+  concerns: { type: "concerns", inverseLabel: "concerned-by", sourceTypes: ["question"], targetTypes: "any", description: "A question concerns engineering context." },
+  "resolved-by": { type: "resolved-by", inverseLabel: "resolves", sourceTypes: ["question"], targetTypes: "any", description: "A question answer propagated to governing context." },
+  supports: { type: "supports", inverseLabel: "supported-by", sourceTypes: ["evidence"], targetTypes: ["verification"], description: "Evidence supports a verification definition." },
+  contracts: { type: "contracts", inverseLabel: "contracted-by", sourceTypes: ["build-contract"], targetTypes: ["task"], description: "A contract bounds a task handoff." },
+  includes: { type: "includes", inverseLabel: "included-in", sourceTypes: ["build-contract"], targetTypes: "any", description: "A contract includes relevant context." },
 };
 
 function matchesConstraint(constraint: TypeConstraint, type: EntityType): boolean {

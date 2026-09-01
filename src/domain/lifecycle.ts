@@ -15,3 +15,6 @@ export type FeatureLifecycle = "draft" | "ready" | "active" | "complete";
 export type TaskLifecycle = "planned" | "in-progress" | "done" | "cancelled";
 export type VerificationLifecycle = "draft" | "defined" | "retired";
 export type RoadmapItemLifecycle = "planned" | "active" | "complete" | "deferred";
+export type QuestionLifecycle = "open" | "answered" | "withdrawn";
+export type EvidenceLifecycle = "recorded" | "superseded" | "withdrawn";
+export type BuildContractLifecycle = "accepted" | "superseded";

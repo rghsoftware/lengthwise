@@ -1,0 +1,341 @@
+lengthwise: 1
+entities:
+  - id: REQ-021
+    type: requirement
+    title: Start and retain a feature workflow
+    lifecycle: accepted
+    statement: Lengthwise shall start a workflow for a new idea or an existing Feature and permit at most one non-terminal workflow run for that Feature.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-021-01 }
+      - { type: has-acceptance-criterion, to: AC-021-02 }
+  - { id: AC-021-01, type: acceptance-criterion, lifecycle: accepted, statement: "Given an idea and valid artifact destination, starting a workflow creates a draft Feature artifact, rebuilds the graph, and opens a run associated with that Feature." }
+  - { id: AC-021-02, type: acceptance-criterion, lifecycle: accepted, statement: "Given a Feature with a non-terminal run, another start request is rejected with the existing run identified; terminal historical runs do not prevent a later run." }
+
+  - id: REQ-022
+    type: requirement
+    title: Guide authoritative artifact authoring
+    lifecycle: accepted
+    statement: Lengthwise shall guide creation and update of applicable engineering entities in recognized Git-tracked artifacts rather than authoring an authoritative workflow database copy.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-022-01 }
+      - { type: has-acceptance-criterion, to: AC-022-02 }
+  - { id: AC-022-01, type: acceptance-criterion, lifecycle: accepted, statement: "For an eligible workflow action, the workbench identifies the engineering entity and authorized repository artifact that must be created or updated." }
+  - { id: AC-022-02, type: acceptance-criterion, lifecycle: accepted, statement: "After an explicit artifact save, workflow guidance is recomputed from the rebuilt Project Graph and checks rather than from an unsaved or database-only entity copy." }
+
+  - id: REQ-023
+    type: requirement
+    title: Persist operational workflow state
+    lifecycle: accepted
+    statement: Lengthwise shall persist workflow runs, activity, attempts, waits, gate events, reconciliation baselines, and terminal history in .lengthwise/state.db separately from derived graph state.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-023-01 }
+      - { type: has-acceptance-criterion, to: AC-023-02 }
+  - { id: AC-023-01, type: acceptance-criterion, lifecycle: accepted, statement: "After Lengthwise restarts, a non-terminal run resumes with its operational history from .lengthwise/state.db while engineering facts are reloaded from repository artifacts." }
+  - { id: AC-023-02, type: acceptance-criterion, lifecycle: accepted, statement: "Deleting and rebuilding .lengthwise/index.db does not delete workflow history, and .lengthwise/state.db is not indexed as an authoritative artifact." }
+
+  - id: REQ-024
+    type: requirement
+    title: Reconcile runs with repository state
+    lifecycle: accepted
+    statement: Lengthwise shall reconcile workflow runtime state against the current authoritative repository and Project Graph on start, resume, and before consequential progression.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-024-01 }
+      - { type: has-acceptance-criterion, to: AC-024-02 }
+  - { id: AC-024-01, type: acceptance-criterion, lifecycle: accepted, statement: "Given relevant artifacts changed outside the workbench, resuming a run rebuilds the graph and reports newly satisfied, invalidated, or stale workflow conditions before offering progression." }
+  - { id: AC-024-02, type: acceptance-criterion, lifecycle: accepted, statement: "Given the repository cannot currently build, the run does not advance and exposes current diagnostics while preserving the last successful graph repair behavior." }
+
+  - id: REQ-025
+    type: requirement
+    title: Manage durable clarification questions
+    lifecycle: accepted
+    statement: Lengthwise shall represent unresolved engineering questions as first-class Question entities with lifecycle and explicit blocking semantics and shall require answers to propagate into governing artifacts.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-025-01 }
+      - { type: has-acceptance-criterion, to: AC-025-02 }
+      - { type: has-acceptance-criterion, to: AC-025-03 }
+  - { id: AC-025-01, type: acceptance-criterion, lifecycle: accepted, statement: "An open Question is independently addressable, identifies whether it blocks, identifies its feature or engineering context, and remains visible after restart or external editing." }
+  - { id: AC-025-02, type: acceptance-criterion, lifecycle: accepted, statement: "A blocking open Question prevents only eligibility rules to which unresolved blocking questions apply; a non-blocking Question remains visible without automatically preventing progression." }
+  - { id: AC-025-03, type: acceptance-criterion, lifecycle: accepted, statement: "Changing a Question to answered does not satisfy its resolution obligation until a relationship identifies the authoritative Requirement, Decision, Plan, BuildContract, or other governing entity updated with the answer; answered and withdrawn history remains inspectable." }
+
+  - id: REQ-026
+    type: requirement
+    title: Evaluate lifecycle-aware completeness
+    lifecycle: accepted
+    statement: Lengthwise shall always enforce structural validity and shall derive completeness obligations from entity type, lifecycle, and effective rigor without using workflow activity as a validity input.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-026-01 }
+      - { type: has-acceptance-criterion, to: AC-026-02 }
+  - { id: AC-026-01, type: acceptance-criterion, lifecycle: accepted, statement: "The same authoritative graph produces the same structural and completeness findings whether no workflow, a specification activity, or a planning activity is active." }
+  - { id: AC-026-02, type: acceptance-criterion, lifecycle: accepted, statement: "A draft entity may be incrementally authored without accepted-entity obligations, while changing it to an obligation-bearing lifecycle deterministically applies the configured rigor checks." }
+
+  - id: REQ-027
+    type: requirement
+    title: Resolve inherited rigor
+    lifecycle: accepted
+    statement: Lengthwise shall derive effective rigor from the nearest explicit override, otherwise graph parent scope, otherwise project default.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-027-01 }
+      - { type: has-acceptance-criterion, to: AC-027-02 }
+      - { type: has-acceptance-criterion, to: AC-027-03 }
+  - { id: AC-027-01, type: acceptance-criterion, lifecycle: accepted, statement: "An entity with an explicit valid rigor override uses that policy for applicable obligations." }
+  - { id: AC-027-02, type: acceptance-criterion, lifecycle: accepted, statement: "An entity without an override inherits from its nearest unambiguous containing parent with an override, otherwise from the project default." }
+  - { id: AC-027-03, type: acceptance-criterion, lifecycle: accepted, statement: "Conflicting equally-near parent rigor overrides produce an actionable deterministic finding rather than order-dependent policy selection." }
+
+  - id: REQ-028
+    type: requirement
+    title: Coordinate the specification gate
+    lifecycle: accepted
+    statement: Lengthwise shall evaluate specification-gate eligibility and present machine findings, blocking Questions, governing artifacts, and relevant changes before recording human judgment.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-028-01 }
+      - { type: has-acceptance-criterion, to: AC-028-02 }
+  - { id: AC-028-01, type: acceptance-criterion, lifecycle: accepted, statement: "A specification gate cannot be approved while its deterministic prerequisites fail, and each failed prerequisite links to the responsible entity, artifact, Question, or finding." }
+  - { id: AC-028-02, type: acceptance-criterion, lifecycle: accepted, statement: "Approving the gate records an operational event and applies the explicitly reviewed authoritative lifecycle changes; it creates no Approval entity." }
+
+  - id: REQ-029
+    type: requirement
+    title: Coordinate implementation planning
+    lifecycle: accepted
+    statement: Lengthwise shall guide creation of the applicable Plan, task DAG, implementation traceability, verification topology, and material implementation decisions required by effective rigor.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-029-01 }
+      - { type: has-acceptance-criterion, to: AC-029-02 }
+  - { id: AC-029-01, type: acceptance-criterion, lifecycle: accepted, statement: "Planning guidance identifies missing rigor-required plan, task, dependency, implementation, verification, and decision artifacts from current graph state." }
+  - { id: AC-029-02, type: acceptance-criterion, lifecycle: accepted, statement: "Planning exit is ineligible when required task dependencies are cyclic, implementation traceability is missing, verification coverage is missing, or blocking planning Questions remain." }
+
+  - id: REQ-030
+    type: requirement
+    title: Generate bounded Build Contract candidates
+    lifecycle: accepted
+    statement: Lengthwise shall deterministically generate a task-scoped Build Contract candidate from the relevant Project Graph context and accepted decision-authority metadata.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-030-01 }
+      - { type: has-acceptance-criterion, to: AC-030-02 }
+      - { type: has-acceptance-criterion, to: AC-030-03 }
+  - { id: AC-030-01, type: acceptance-criterion, lifecycle: accepted, statement: "A candidate includes its task, applicable requirements/NFRs and ACs, governing decisions, LOCKED/BOUNDED/DELEGATED decisions, task dependencies, and verification obligations." }
+  - { id: AC-030-02, type: acceptance-criterion, lifecycle: accepted, statement: "A candidate excludes unrelated project entities, and Lengthwise can explain the graph path or policy reason for every included entity." }
+  - { id: AC-030-03, type: acceptance-criterion, lifecycle: accepted, statement: "Repeated generation from semantically identical authoritative state and configuration produces a semantically identical candidate and governing-context fingerprint." }
+
+  - id: REQ-031
+    type: requirement
+    title: Accept and detect stale Build Contracts
+    lifecycle: accepted
+    statement: Lengthwise shall persist an accepted candidate as an authoritative BuildContract entity and derive whether it remains current against its governing context.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-031-01 }
+      - { type: has-acceptance-criterion, to: AC-031-02 }
+  - { id: AC-031-01, type: acceptance-criterion, lifecycle: accepted, statement: "Accepting a candidate explicitly saves a machine-readable BuildContract artifact containing stable identity, lifecycle, task relationship, authority classifications, included context, and governing-context fingerprint." }
+  - { id: AC-031-02, type: acceptance-criterion, lifecycle: accepted, statement: "When relevant governing context changes, the accepted contract is reported stale with the changed inputs identified; unrelated graph changes do not make it stale." }
+
+  - id: REQ-032
+    type: requirement
+    title: Coordinate the Build Contract gate
+    lifecycle: accepted
+    statement: Lengthwise shall evaluate Build Contract gate eligibility and present contract scope, decision authority, dependencies, verification obligations, staleness, Questions, and findings before recording human judgment.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-032-01 }
+      - { type: has-acceptance-criterion, to: AC-032-02 }
+  - { id: AC-032-01, type: acceptance-criterion, lifecycle: accepted, statement: "The gate is ineligible while any required contract is missing or stale, a task DAG is invalid, a required traceability or verification obligation is missing, or a blocking implementation Question remains." }
+  - { id: AC-032-02, type: acceptance-criterion, lifecycle: accepted, statement: "Approval records an operational event, preserves the accepted authoritative BuildContracts as the handoff boundary, and permits derived implementation readiness without creating an Approval entity." }
+
+  - id: REQ-033
+    type: requirement
+    title: Record verification Evidence
+    lifecycle: accepted
+    statement: Lengthwise shall represent verification results as first-class Evidence entities with stable identity, outcome, source provenance, applicability context, and many-to-many support for Verification definitions.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-033-01 }
+      - { type: has-acceptance-criterion, to: AC-033-02 }
+      - { type: has-acceptance-criterion, to: AC-033-03 }
+  - { id: AC-033-01, type: acceptance-criterion, lifecycle: accepted, statement: "Evidence records an outcome, method or result reference, authoritative source, and revision or applicability context sufficient to decide whether it applies to current state." }
+  - { id: AC-033-02, type: acceptance-criterion, lifecycle: accepted, statement: "One Evidence entity can support multiple Verification definitions and one Verification can require multiple complementary Evidence entities without duplicating evidence solely for metrics." }
+  - { id: AC-033-03, type: acceptance-criterion, lifecycle: accepted, statement: "Evidence with a failing, inconclusive, stale, or inapplicable outcome does not satisfy a required verification obligation and remains visible in verification history." }
+
+  - id: REQ-034
+    type: requirement
+    title: Coordinate external implementation
+    lifecycle: accepted
+    statement: Lengthwise shall coordinate manual Build Contract handoff, task progress, interruption, retry, and implementation-return claims without invoking an implementer or generating code.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-034-01 }
+      - { type: has-acceptance-criterion, to: AC-034-02 }
+  - { id: AC-034-01, type: acceptance-criterion, lifecycle: accepted, statement: "A ready task exposes its accepted current BuildContract for manual handoff and records handoff/return coordination operationally without provider-specific fields." }
+  - { id: AC-034-02, type: acceptance-criterion, lifecycle: accepted, statement: "An implementation completion claim does not itself satisfy verification, reconciliation, task completion, or feature completion eligibility." }
+
+  - id: REQ-035
+    type: requirement
+    title: Reconcile engineering and implementation state
+    lifecycle: accepted
+    statement: Lengthwise shall guide reconciliation when implementation, Evidence, accepted BuildContracts, or governing artifacts do not converge.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-035-01 }
+      - { type: has-acceptance-criterion, to: AC-035-02 }
+  - { id: AC-035-01, type: acceptance-criterion, lifecycle: accepted, statement: "When implementation or Evidence reveals a governing artifact is wrong, reconciliation can direct an update to that artifact and invalidate affected contracts or eligibility rather than requiring conformity to the obsolete artifact." }
+  - { id: AC-035-02, type: acceptance-criterion, lifecycle: accepted, statement: "Reconciliation remains incomplete until current artifacts, contracts, task state, required Evidence, and applicable gate effects converge under current checks." }
+
+  - id: REQ-036
+    type: requirement
+    title: Derive readiness and completion eligibility
+    lifecycle: accepted
+    statement: Lengthwise shall deterministically derive and explain feature implementation readiness and completion eligibility from current authoritative state, Evidence, operational gate events, and effective rigor.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-036-01 }
+      - { type: has-acceptance-criterion, to: AC-036-02 }
+      - { type: has-acceptance-criterion, to: AC-036-03 }
+  - { id: AC-036-01, type: acceptance-criterion, lifecycle: accepted, statement: "Readiness output identifies every unmet specification, planning, Question, contract, validation, or gate prerequisite and does not persist readiness as lifecycle or runtime truth." }
+  - { id: AC-036-02, type: acceptance-criterion, lifecycle: accepted, statement: "Completion is ineligible while required tasks, Evidence, reconciliation, Questions, checks, or rigor-required approvals are unsatisfied, with each blocker explained." }
+  - { id: AC-036-03, type: acceptance-criterion, lifecycle: accepted, statement: "When deterministic completion eligibility is true, a final human gate is requested only if effective rigor requires it; the Feature becomes complete only through an explicit authoritative lifecycle save." }
+
+  - id: REQ-037
+    type: requirement
+    title: Present workflow context in the workbench
+    lifecycle: accepted
+    statement: The workbench shall present the current Feature, workflow activity, derived eligibility, Questions, findings, gates, contracts, verification obligations, and next eligible actions with navigation to responsible engineering context.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-037-01 }
+      - { type: has-acceptance-criterion, to: AC-037-02 }
+  - { id: AC-037-01, type: acceptance-criterion, lifecycle: accepted, statement: "A user can identify the active Feature, current workflow activity, why progression is blocked or eligible, and the next available actions without inferring them from raw artifact files." }
+  - { id: AC-037-02, type: acceptance-criterion, lifecycle: accepted, statement: "Activating a Question, finding, contract input, verification obligation, or gate prerequisite navigates to the responsible entity or authoritative artifact while preserving workflow context." }
+
+  - id: REQ-038
+    type: requirement
+    title: Control workflow interruption and retry
+    lifecycle: accepted
+    statement: Lengthwise shall support safe interruption, resume, cancellation, and retry of workflow actions without duplicating authoritative entities or operational effects.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-038-01 }
+      - { type: has-acceptance-criterion, to: AC-038-02 }
+  - { id: AC-038-01, type: acceptance-criterion, lifecycle: accepted, statement: "After interruption during an action, resume identifies whether no write occurred, an authoritative save occurred, or reconciliation is required before retry." }
+  - { id: AC-038-02, type: acceptance-criterion, lifecycle: accepted, statement: "Cancellation makes a run terminal without deleting or rolling back authoritative artifacts, and retry does not duplicate gate events, generated identities, or completed action effects." }
+
+  - id: NFR-013
+    type: non-functional-requirement
+    title: Authority and state isolation
+    lifecycle: accepted
+    statement: Workflow operation shall preserve strict separation among Git authority, derived graph/index state, and operational workflow state.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-013-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-013-02 }
+  - { id: AC-NFR-013-01, type: acceptance-criterion, lifecycle: accepted, statement: "No requirement, decision, Question, task, verification definition, Evidence item, accepted BuildContract, or lifecycle transition exists solely in .lengthwise/state.db." }
+  - { id: AC-NFR-013-02, type: acceptance-criterion, lifecycle: accepted, statement: "Operational and derived databases can be identified, backed up, deleted, or rebuilt independently without either being interpreted as a Git-tracked engineering artifact." }
+
+  - id: NFR-014
+    type: non-functional-requirement
+    title: Deterministic workflow projections
+    lifecycle: accepted
+    statement: Workflow eligibility, contract generation, staleness, and reconciliation findings shall be deterministic for equivalent authoritative inputs and policy.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-014-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-014-02 }
+  - { id: AC-NFR-014-01, type: acceptance-criterion, lifecycle: accepted, statement: "Repeated evaluation of equivalent graph, configuration, operational gate facts, and Lengthwise version produces semantically equivalent ordered results." }
+  - { id: AC-NFR-014-02, type: acceptance-criterion, lifecycle: accepted, statement: "Contract fingerprints depend on normalized relevant semantics rather than file ordering, formatting, absolute repository path, or unrelated entities." }
+
+  - id: NFR-015
+    type: non-functional-requirement
+    title: Explainable coordination
+    lifecycle: accepted
+    statement: Every workflow obligation, blocker, eligibility result, contract inclusion, staleness result, and completion result shall identify its governing evidence.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-015-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-015-02 }
+  - { id: AC-NFR-015-01, type: acceptance-criterion, lifecycle: accepted, statement: "Machine-readable results identify relevant entity IDs, relationships, policy fields, findings, or operational gate events rather than returning an unexplained boolean." }
+  - { id: AC-NFR-015-02, type: acceptance-criterion, lifecycle: accepted, statement: "The workbench renders explanations in terminology that distinguishes lifecycle, derived eligibility, and runtime activity." }
+
+  - id: NFR-016
+    type: non-functional-requirement
+    title: Resumability and idempotency
+    lifecycle: accepted
+    statement: Workflow operations shall survive restart and safe retry without silent duplication or assumed repository continuity.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-016-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-016-02 }
+  - { id: AC-NFR-016-01, type: acceptance-criterion, lifecycle: accepted, statement: "A restart between any two persisted workflow actions can resume after repository reconciliation without losing completed action or gate history." }
+  - { id: AC-NFR-016-02, type: acceptance-criterion, lifecycle: accepted, statement: "Repeating an action with the same idempotency identity produces at most one operational effect and does not overwrite divergent authoritative edits." }
+
+  - id: NFR-017
+    type: non-functional-requirement
+    title: Proportional inherited rigor
+    lifecycle: accepted
+    statement: Workflow obligations shall use one semantic workflow and vary ceremony only through nearest-parent inherited rigor policy.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-017-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-017-02 }
+  - { id: AC-NFR-017-01, type: acceptance-criterion, lifecycle: accepted, statement: "Light, standard, and strict fixtures traverse the same applicable semantic activities while producing the different evidence and approval obligations declared by policy." }
+  - { id: AC-NFR-017-02, type: acceptance-criterion, lifecycle: accepted, statement: "No separate workflow implementation or hard-coded artifact count exists for a rigor level." }
+
+  - id: NFR-018
+    type: non-functional-requirement
+    title: Bounded contract context
+    lifecycle: accepted
+    statement: Generated Build Contracts shall be complete for their task while excluding unrelated project context.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-018-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-018-02 }
+  - { id: AC-NFR-018-01, type: acceptance-criterion, lifecycle: accepted, statement: "Contract-slice tests prove all required governing paths for representative tasks are included and unrelated feature branches are absent." }
+  - { id: AC-NFR-018-02, type: acceptance-criterion, lifecycle: accepted, statement: "Decision-authority output preserves programmer discretion by requiring classifications only for decisions relevant to the task boundary." }
+
+  - id: NFR-019
+    type: non-functional-requirement
+    title: Implementer neutrality
+    lifecycle: accepted
+    statement: Workflow coordination and Build Contracts shall remain usable by human and AI implementers without provider-specific execution semantics.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-019-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-019-02 }
+  - { id: AC-NFR-019-01, type: acceptance-criterion, lifecycle: accepted, statement: "A contract can be exported or read without a Codex, Claude, OpenCode, or other provider identifier or protocol." }
+  - { id: AC-NFR-019-02, type: acceptance-criterion, lifecycle: accepted, statement: "F-003 contains no provider invocation, worktree creation, code generation, or remote execution path." }
+
+  - id: NFR-020
+    type: non-functional-requirement
+    title: Workbench service consistency
+    lifecycle: accepted
+    statement: Workflow behavior shall extend F-002's reusable application services and explicit save/rebuild/check boundary rather than place engineering rules in UI components.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-020-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-020-02 }
+  - { id: AC-NFR-020-01, type: acceptance-criterion, lifecycle: accepted, statement: "Workflow, eligibility, generation, and reconciliation rules are callable independently of Svelte components and are covered at the service boundary." }
+  - { id: AC-NFR-020-02, type: acceptance-criterion, lifecycle: accepted, statement: "Authoritative writes retain F-002 conflict, artifact-scope, retained-graph, and explicit-save behavior." }
+
+  - id: NFR-021
+    type: non-functional-requirement
+    title: Local security boundary
+    lifecycle: accepted
+    statement: F-003 shall preserve the Minimal Workbench loopback, same-origin, selected-project, and authorized-artifact trust boundaries.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-021-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-021-02 }
+  - { id: AC-NFR-021-01, type: acceptance-criterion, lifecycle: accepted, statement: "Workflow endpoints reject untrusted browser origins and cannot create or edit files outside configured authorized artifact scope." }
+  - { id: AC-NFR-021-02, type: acceptance-criterion, lifecycle: accepted, statement: "Workflow identifiers, entity IDs, and artifact paths cannot be used to expose another repository or a general command/filesystem interface." }
+
+  - id: NFR-022
+    type: non-functional-requirement
+    title: Evidence integrity without quality theater
+    lifecycle: accepted
+    statement: Evidence satisfaction shall preserve applicability and many-to-many semantics without rewarding duplicate evidence or arbitrary counts.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-022-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-022-02 }
+  - { id: AC-NFR-022-01, type: acceptance-criterion, lifecycle: accepted, statement: "Duplicating the same result does not increase satisfaction, and no verification method is privileged solely because it is automated." }
+  - { id: AC-NFR-022-02, type: acceptance-criterion, lifecycle: accepted, statement: "Satisfaction reports distinguish missing, failing, stale, inapplicable, and satisfactory Evidence." }
+
+  - id: NFR-023
+    type: non-functional-requirement
+    title: Operational durability and migration
+    lifecycle: accepted
+    statement: Operational state storage shall use explicit schema versioning, transactional changes, and recoverable migrations.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-023-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-023-02 }
+  - { id: AC-NFR-023-01, type: acceptance-criterion, lifecycle: accepted, statement: "Opening an older supported state.db applies deterministic transactional migrations without changing Git artifacts or index.db." }
+  - { id: AC-NFR-023-02, type: acceptance-criterion, lifecycle: accepted, statement: "An unsupported or failed migration reports a clear recovery diagnostic and does not partially advance the operational schema." }
+
+  - id: NFR-024
+    type: non-functional-requirement
+    title: Workflow comprehensibility
+    lifecycle: accepted
+    statement: Representative engineers shall be able to understand current workflow state, required judgment, and the next engineering action without learning an internal state-machine vocabulary.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-024-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-024-02 }
+  - { id: AC-NFR-024-01, type: acceptance-criterion, lifecycle: accepted, statement: "In usability evaluation, a representative user can identify the current activity, blocking reason, pending human decision, and next eligible action for specification, planning, and reconciliation scenarios." }
+  - { id: AC-NFR-024-02, type: acceptance-criterion, lifecycle: accepted, statement: "The interface visibly distinguishes an entity lifecycle, derived eligibility, operational wait, validation finding, and unresolved Question." }
