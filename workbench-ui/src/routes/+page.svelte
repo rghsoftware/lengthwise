@@ -105,9 +105,11 @@
       artifact = body.artifact;
       editorValue = artifact.content;
       snapshot = body.snapshot;
-      notice = snapshot.repositoryValid
-        ? "Saved. Project Graph rebuilt and checks completed."
-        : "Saved, but the repository cannot currently produce a valid Project Graph. Navigation is using the last successful graph.";
+      notice = snapshot.retainedGraph
+        ? "Saved, but the repository cannot currently produce a Project Graph. Navigation is using the last successfully built graph."
+        : snapshot.repositoryValid
+          ? "Saved. Project Graph rebuilt and checks passed."
+          : "Saved. Project Graph rebuilt, but checks found blocking findings.";
       await search();
       if (detail) {
         const currentId = detail.entity.id;
@@ -174,6 +176,7 @@
   <div class="state">
     {#if dirty}<Badge tone="warning">Unsaved</Badge>{:else}<Badge tone="good">Saved</Badge>{/if}
     {#if snapshot?.retainedGraph}<Hint text="The saved repository is invalid. Navigation remains anchored to the most recent successful graph."><Badge tone="danger">Last successful graph</Badge></Hint>{/if}
+    {#if snapshot && !snapshot.repositoryValid && !snapshot.retainedGraph}<Hint text="The current Project Graph was rebuilt, but blocking checks failed."><Badge tone="danger">Checks failing</Badge></Hint>{/if}
     <Button variant="primary" disabled={!dirty || saving} on:click={save}>{saving ? "Saving…" : "Save"}</Button>
   </div>
 </header>

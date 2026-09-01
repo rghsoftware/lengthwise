@@ -21,14 +21,17 @@ export type SessionStartResult =
 export class WorkbenchSession {
   private revision = 1;
   private changes: ModelChange[] = [];
-  private repositoryValid = true;
+  private repositoryValid: boolean;
+  private usingRetainedGraph = false;
   private failureDiagnostics: Diagnostic[] = [];
 
   private constructor(
     readonly repoRoot: string,
     private current: SuccessfulBuild,
     readonly artifacts: ArtifactService,
-  ) {}
+  ) {
+    this.repositoryValid = !current.diagnostics.some((diagnostic) => diagnostic.severity === "error");
+  }
 
   static async start(repoRoot: string): Promise<SessionStartResult> {
     const built = await buildProjectGraph(repoRoot);
@@ -47,9 +50,9 @@ export class WorkbenchSession {
     return {
       revision: this.revision,
       repositoryValid: this.repositoryValid,
-      retainedGraph: !this.repositoryValid,
+      retainedGraph: this.usingRetainedGraph,
       entities: this.query().listEntities(),
-      diagnostics: this.repositoryValid ? this.current.diagnostics : this.failureDiagnostics,
+      diagnostics: this.usingRetainedGraph ? this.failureDiagnostics : this.current.diagnostics,
       changes: this.changes,
     };
   }
@@ -80,6 +83,7 @@ export class WorkbenchSession {
     const buildDiagnostics = built.ok ? built.diagnostics : built.diagnostics;
     if (!built.ok || buildDiagnostics.some((diagnostic) => diagnostic.severity === "error")) {
       this.repositoryValid = false;
+      this.usingRetainedGraph = true;
       this.failureDiagnostics = buildDiagnostics;
       this.changes = [];
       this.revision += 1;
@@ -93,7 +97,8 @@ export class WorkbenchSession {
     };
     this.changes = compareSuccessfulGraphs(this.current, next);
     this.current = next;
-    this.repositoryValid = true;
+    this.repositoryValid = !next.diagnostics.some((diagnostic) => diagnostic.severity === "error");
+    this.usingRetainedGraph = false;
     this.failureDiagnostics = [];
     this.revision += 1;
   }

@@ -117,6 +117,30 @@ test("invalid saved content remains on disk while the last successful graph is r
   expect(repaired.snapshot.retainedGraph).toBe(false);
 });
 
+test("blocking relationship findings mark the repository invalid without retaining the previous graph", async () => {
+  const root = await fixture();
+  const started = await WorkbenchSession.start(root);
+  if (!started.ok) throw new Error("fixture did not start");
+  const artifact = await started.session.readArtifact("engineering/model.yaml");
+  const saved = await started.session.saveArtifact(
+    artifact.path,
+    artifact.content.replace("to: REQ-001", "to: REQ-MISSING"),
+    artifact.version,
+  );
+
+  expect(saved.snapshot.repositoryValid).toBe(false);
+  expect(saved.snapshot.retainedGraph).toBe(false);
+  expect(saved.snapshot.diagnostics).toContainEqual(expect.objectContaining({
+    code: "graph/dangling-relationship",
+    severity: "error",
+    entityId: "TASK-001",
+  }));
+  expect(started.session.getEntity("TASK-001")?.relationships).toContainEqual(expect.objectContaining({
+    direction: "outgoing",
+    counterpart: { id: "REQ-MISSING", missing: true },
+  }));
+});
+
 test("stale editor version rejects save without overwriting external content", async () => {
   const root = await fixture();
   const started = await WorkbenchSession.start(root);

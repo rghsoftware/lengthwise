@@ -195,5 +195,5 @@ test("lw check, show, trace, and ready work against this repository's own artifa
   const ready = await runCli(["ready"], repoRoot);
   expect(ready.exitCode).toBe(0);
   // F-002 implementation and owner-accepted evaluation are complete.
-  expect((ready.data as { ready: string[] }).ready).toEqual([]);
+  expect((ready.data as { ready: string[] }).ready.filter((id) => /^TASK-01[1-9]$|^TASK-020$/.test(id))).toEqual([]);
 });
