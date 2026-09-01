@@ -15,3 +15,37 @@ entities:
   - { id: DR-012, type: decision, title: Semantic type and storage representation are independent, lifecycle: accepted, decision: "Entity semantic type does not dictate YAML versus Markdown or require heavyweight standalone documents." }
   - { id: DR-013, type: decision, title: Entity lifecycle is type-specific; dynamic and runtime states are separate, lifecycle: accepted, decision: "Each entity type has appropriate lifecycle states; readiness, satisfaction, verification results, and runtime state are derived or operational." }
   - { id: DR-014, type: decision, title: Rigor is inherited policy; significance is intrinsic to the change, lifecycle: accepted, decision: "Rigor inherits from the nearest explicit policy scope while significance is explicit on the relevant change." }
+  - id: DR-015
+    type: decision
+    title: Invalid saved artifacts coexist with the last successful graph
+    lifecycle: accepted
+    decision: "The workbench writes an explicit save before rebuilding; if the repository no longer builds, the saved artifact remains authoritative while navigation retains and clearly labels the last successfully built graph."
+    relationships:
+      - { type: governs, to: F-002 }
+      - { type: governs, to: REQ-018 }
+  - id: DR-016
+    type: decision
+    title: Workbench graph changes use a successful session baseline
+    lifecycle: accepted
+    decision: "Model-change feedback compares consecutive successful Project Graph builds in the current workbench session; failed builds do not advance the baseline."
+    relationships:
+      - { type: governs, to: F-002 }
+      - { type: governs, to: REQ-020 }
+      - { type: governs, to: NFR-011 }
+  - id: DR-017
+    type: decision
+    title: Workbench artifact saves are explicit
+    lifecycle: accepted
+    decision: "Editing is non-authoritative until an explicit save; the UI shows dirty state and protects users from accidental discard."
+    relationships:
+      - { type: governs, to: F-002 }
+      - { type: governs, to: REQ-017 }
+  - id: DR-018
+    type: decision
+    title: Minimal Workbench is a browser client over shared services
+    lifecycle: accepted
+    decision: "Use a SvelteKit and CodeMirror 6 browser client launched by lw serve over a loopback HTTP boundary; reusable Lengthwise application services own graph, validation, artifact, and graph-change behavior."
+    relationships:
+      - { type: governs, to: F-002 }
+      - { type: governs, to: NFR-008 }
+      - { type: governs, to: NFR-009 }

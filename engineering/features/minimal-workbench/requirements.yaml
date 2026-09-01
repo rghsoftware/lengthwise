@@ -1,0 +1,302 @@
+lengthwise: 1
+entities:
+  - id: REQ-013
+    type: requirement
+    title: Launch local workbench
+    lifecycle: accepted
+    statement: Lengthwise shall launch a browser-hosted workbench for the selected local Lengthwise project.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-013-01 }
+      - { type: has-acceptance-criterion, to: AC-013-02 }
+      - { type: has-acceptance-criterion, to: AC-013-03 }
+  - id: AC-013-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Given a valid Lengthwise project, running lw serve starts a local workbench and reports a URL that can be opened in a browser.
+  - id: AC-013-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Given a directory that is not a valid Lengthwise project, lw serve fails with a clear project-configuration diagnostic and does not start a misleading empty workbench.
+  - id: AC-013-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: By default the workbench is reachable only through a loopback interface and operates without an external service dependency.
+
+  - id: REQ-014
+    type: requirement
+    title: Entity discovery and navigation
+    lifecycle: accepted
+    statement: The workbench shall let a user browse, search, select, and revisit Project Graph entities without requiring knowledge of their artifact paths.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-014-01 }
+      - { type: has-acceptance-criterion, to: AC-014-02 }
+      - { type: has-acceptance-criterion, to: AC-014-03 }
+      - { type: has-acceptance-criterion, to: AC-014-04 }
+  - id: AC-014-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: The navigation surface lists entities with enough identity context to distinguish their ID, type, lifecycle, and human-readable label when present.
+  - id: AC-014-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A user can narrow the entity list by type and by a case-insensitive text query matching IDs and useful human-readable authored text.
+  - id: AC-014-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Selecting an entity produces a stable addressable browser location that can be revisited or shared within the running local workbench.
+  - id: AC-014-04
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Empty searches, unknown entity addresses, loading states, and service failures are visibly distinguished rather than presented as the same blank state.
+
+  - id: REQ-015
+    type: requirement
+    title: Entity inspection
+    lifecycle: accepted
+    statement: The workbench shall present an entity's authored and relevant derived engineering-model information with its authoritative source context.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-015-01 }
+      - { type: has-acceptance-criterion, to: AC-015-02 }
+      - { type: has-acceptance-criterion, to: AC-015-03 }
+  - id: AC-015-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Inspecting an entity shows its ID, semantic type, type-specific lifecycle, authored properties, and authoritative artifact path and source line when available.
+  - id: AC-015-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Inspecting an entity shows applicable derived state, such as task readiness or traceability coverage, as derived information rather than an authored generic status.
+  - id: AC-015-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A user evaluating representative requirement, task, verification, decision, and feature entities can correctly identify what each entity is, where it comes from, and its relevant current state.
+
+  - id: REQ-016
+    type: requirement
+    title: Relationship inspection and navigation
+    lifecycle: accepted
+    statement: The workbench shall expose incoming and outgoing relationships, including meaningful provenance, as navigable connections between entities.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-016-01 }
+      - { type: has-acceptance-criterion, to: AC-016-02 }
+      - { type: has-acceptance-criterion, to: AC-016-03 }
+  - id: AC-016-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Inspecting a connected entity distinguishes incoming from outgoing relationships and identifies relationship semantics, counterpart entity, and provenance kind.
+  - id: AC-016-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Activating a relationship counterpart navigates directly to that entity without requiring a graph canvas.
+  - id: AC-016-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A user can follow a representative requirement-to-criterion-to-verification or requirement-to-implementing-task path and explain the path's direction and meaning.
+
+  - id: REQ-017
+    type: requirement
+    title: Authoritative artifact editing
+    lifecycle: accepted
+    statement: The workbench shall read and explicitly save edits to the actual recognized repository artifact that authoritatively declares the selected entity.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-017-01 }
+      - { type: has-acceptance-criterion, to: AC-017-02 }
+      - { type: has-acceptance-criterion, to: AC-017-03 }
+      - { type: has-acceptance-criterion, to: AC-017-04 }
+      - { type: has-acceptance-criterion, to: AC-017-05 }
+  - id: AC-017-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Opening an entity's source loads the complete current contents of its authoritative Markdown or YAML artifact into an editor with appropriate Markdown, YAML, and frontmatter language support.
+  - id: AC-017-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Editing changes a visible dirty state but does not modify the repository artifact until the user explicitly saves.
+  - id: AC-017-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A successful save writes the edited content to the same authoritative repository artifact without creating a separate authoritative database representation.
+  - id: AC-017-04
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Before navigation, reload, or page closure would discard unsaved edits, the user receives a warning through the protection mechanisms available to the browser interaction.
+  - id: AC-017-05
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: The workbench refuses read or write requests for paths outside recognized configured artifact scope, including traversal and symlink escape attempts, and does not expose a general filesystem editor.
+
+  - id: REQ-018
+    type: requirement
+    title: Save, rebuild, and validation loop
+    lifecycle: accepted
+    statement: After saving an artifact, the workbench shall rebuild the Project Graph, run Lengthwise checks, and present the outcome while preserving a usable repair path.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-018-01 }
+      - { type: has-acceptance-criterion, to: AC-018-02 }
+      - { type: has-acceptance-criterion, to: AC-018-03 }
+      - { type: has-acceptance-criterion, to: AC-018-04 }
+  - id: AC-018-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Saving valid content rebuilds the graph, runs the same registered checks available to the CLI, and refreshes inspection from the successful result.
+  - id: AC-018-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Saving content that cannot produce a valid graph leaves the saved repository artifact unchanged, identifies the repository as currently invalid, and reports actionable build diagnostics.
+  - id: AC-018-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: After a failed rebuild, entity navigation continues against the most recent successful graph while the editor displays the current saved artifact, and the UI clearly distinguishes those two states.
+  - id: AC-018-04
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A later corrective save that rebuilds successfully replaces the retained graph and clears the invalid-repository indication.
+
+  - id: REQ-019
+    type: requirement
+    title: Finding presentation and navigation
+    lifecycle: accepted
+    statement: The workbench shall present validation findings in a form that supports understanding and repair from the responsible engineering context.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-019-01 }
+      - { type: has-acceptance-criterion, to: AC-019-02 }
+      - { type: has-acceptance-criterion, to: AC-019-03 }
+  - id: AC-019-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Each finding displays its diagnostic category, message, and responsible entity, artifact, and source line whenever those locations are known.
+  - id: AC-019-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Activating a finding with known entity or source context navigates to that entity and/or opens the responsible artifact at the relevant location.
+  - id: AC-019-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A user encountering representative structural, completeness, and parse findings can identify the problem and reach the artifact context needed to begin correcting it.
+
+  - id: REQ-020
+    type: requirement
+    title: Successful graph-change feedback
+    lifecycle: accepted
+    statement: The workbench shall summarize meaningful engineering-model changes between consecutive successful graph builds in the current workbench session.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-020-01 }
+      - { type: has-acceptance-criterion, to: AC-020-02 }
+      - { type: has-acceptance-criterion, to: AC-020-03 }
+      - { type: has-acceptance-criterion, to: AC-020-04 }
+  - id: AC-020-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: After a successful rebuild, the workbench reports entities added or removed, lifecycle changes, and relationships added or removed relative to the previous successful session graph when such changes occurred.
+  - id: AC-020-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: The change summary reports newly lost implementation or verification coverage and blocking findings added or resolved when such consequences occur.
+  - id: AC-020-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A failed rebuild does not advance the successful graph comparison baseline, and the UI does not misrepresent a partial or invalid graph as the new baseline.
+  - id: AC-020-04
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: The model-change summary is presented as session-scoped graph feedback and does not imply that it is a Git or line-level diff.
+
+  - id: NFR-008
+    type: non-functional-requirement
+    title: Shared application behavior
+    lifecycle: accepted
+    statement: Workbench behavior shall reuse Lengthwise application services so graph, validation, artifact-safety, and change semantics remain independent of the UI framework and available to other clients.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-008-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-008-02 }
+      - { type: has-acceptance-criterion, to: AC-NFR-008-03 }
+  - id: AC-NFR-008-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Graph query, check, artifact read/write safety, and successful-build comparison behavior can be exercised without rendering Svelte components.
+  - id: AC-NFR-008-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: For the same repository state, CLI and workbench validation operations produce semantically equivalent diagnostics from the same registered checks.
+  - id: AC-NFR-008-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Svelte components do not contain a second implementation of Project Graph construction, relationship semantics, validation policy, or repository path authorization.
+
+  - id: NFR-009
+    type: non-functional-requirement
+    title: Local safety boundary
+    lifecycle: accepted
+    statement: The write-capable workbench shall minimize local exposure and constrain all artifact access to the selected configured Lengthwise project.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-009-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-009-02 }
+      - { type: has-acceptance-criterion, to: AC-NFR-009-03 }
+  - id: AC-NFR-009-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Default serving configuration binds to loopback and does not advertise the service on external network interfaces.
+  - id: AC-NFR-009-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Artifact authorization is enforced server-side using resolved paths and configured discovery scope rather than trusting a client-supplied path or filename extension.
+  - id: AC-NFR-009-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Requests from an untrusted browser origin cannot invoke write operations through the local workbench service under its default configuration.
+
+  - id: NFR-010
+    type: non-functional-requirement
+    title: Concurrent modification safety
+    lifecycle: accepted
+    statement: Artifact saves shall avoid silently overwriting changes made outside the current editor session.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-010-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-010-02 }
+  - id: AC-NFR-010-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: If an artifact has changed since the editor loaded or last saved it, a save is rejected as a conflict without overwriting the newer repository content.
+  - id: AC-NFR-010-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: A save conflict identifies the affected artifact and lets the user reload the current repository content without presenting the rejected edit as saved.
+
+  - id: NFR-011
+    type: non-functional-requirement
+    title: Deterministic session feedback
+    lifecycle: accepted
+    statement: For equivalent ordered successful graph states, model-change feedback shall be deterministic and independent of presentation ordering accidents.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-011-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-011-02 }
+  - id: AC-NFR-011-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Comparing semantically equivalent graph snapshots produces no changes even if entity or relationship collection order differs.
+  - id: AC-NFR-011-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Repeating the same graph transition produces the same normalized set of reported model changes.
+
+  - id: NFR-012
+    type: non-functional-requirement
+    title: Core-loop usability
+    lifecycle: accepted
+    statement: The minimal workbench shall make the inspect-edit-validate-consequence loop understandable and operable without requiring users to infer hidden state transitions.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-012-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-012-02 }
+      - { type: has-acceptance-criterion, to: AC-NFR-012-03 }
+  - id: AC-NFR-012-01
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: In a representative usability evaluation, an engineer can locate an entity, follow a relationship, edit and save its source, interpret validation feedback, and identify resulting model changes without facilitator intervention.
+  - id: AC-NFR-012-02
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: The interface visibly distinguishes unsaved editor content, saved repository content, the last successful graph, an in-progress rebuild, and an invalid repository state whenever those states differ.
+  - id: AC-NFR-012-03
+    type: acceptance-criterion
+    lifecycle: accepted
+    statement: Human review finds the plain interface's terminology, hierarchy, empty states, and failure states comprehensible for the core loop, independent of visual polish.

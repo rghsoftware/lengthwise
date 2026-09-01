@@ -1,0 +1,116 @@
+lengthwise: 1
+entities:
+  - id: VER-013
+    type: verification
+    title: Local Workbench Launch Contract
+    lifecycle: defined
+    method: automated-cli-and-http-integration-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-013-01 }
+      - { type: verifies, to: AC-013-02 }
+      - { type: verifies, to: AC-013-03 }
+      - { type: verifies, to: AC-NFR-009-01 }
+
+  - id: VER-014
+    type: verification
+    title: Entity Query and Inspection Contract
+    lifecycle: defined
+    method: automated-service-and-browser-behavioral-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-014-01 }
+      - { type: verifies, to: AC-014-02 }
+      - { type: verifies, to: AC-014-03 }
+      - { type: verifies, to: AC-014-04 }
+      - { type: verifies, to: AC-015-01 }
+      - { type: verifies, to: AC-015-02 }
+
+  - id: VER-015
+    type: verification
+    title: Relationship Navigation Contract
+    lifecycle: defined
+    method: automated-service-and-browser-behavioral-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-016-01 }
+      - { type: verifies, to: AC-016-02 }
+
+  - id: VER-016
+    type: verification
+    title: Authoritative Editor and Artifact Safety
+    lifecycle: defined
+    method: automated-browser-integration-and-security-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-017-01 }
+      - { type: verifies, to: AC-017-02 }
+      - { type: verifies, to: AC-017-03 }
+      - { type: verifies, to: AC-017-04 }
+      - { type: verifies, to: AC-017-05 }
+      - { type: verifies, to: AC-NFR-009-02 }
+      - { type: verifies, to: AC-NFR-009-03 }
+      - { type: verifies, to: AC-NFR-010-01 }
+      - { type: verifies, to: AC-NFR-010-02 }
+
+  - id: VER-017
+    type: verification
+    title: Save Rebuild Validation and Repair Loop
+    lifecycle: defined
+    method: automated-end-to-end-browser-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-018-01 }
+      - { type: verifies, to: AC-018-02 }
+      - { type: verifies, to: AC-018-03 }
+      - { type: verifies, to: AC-018-04 }
+      - { type: verifies, to: AC-019-01 }
+      - { type: verifies, to: AC-019-02 }
+
+  - id: VER-018
+    type: verification
+    title: Successful Graph Comparison Semantics
+    lifecycle: defined
+    method: automated-service-and-end-to-end-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-020-01 }
+      - { type: verifies, to: AC-020-02 }
+      - { type: verifies, to: AC-020-03 }
+      - { type: verifies, to: AC-020-04 }
+      - { type: verifies, to: AC-NFR-011-01 }
+      - { type: verifies, to: AC-NFR-011-02 }
+
+  - id: VER-019
+    type: verification
+    title: Shared Service and Client Boundary
+    lifecycle: defined
+    method: automated-contract-test-plus-code-inspection
+    required: true
+    relationships:
+      - { type: verifies, to: AC-NFR-008-01 }
+      - { type: verifies, to: AC-NFR-008-02 }
+      - { type: verifies, to: AC-NFR-008-03 }
+
+  - id: VER-020
+    type: verification
+    title: Core Loop Usability Evaluation
+    lifecycle: defined
+    method: moderated-human-usability-evaluation
+    required: true
+    relationships:
+      - { type: verifies, to: AC-015-03 }
+      - { type: verifies, to: AC-016-03 }
+      - { type: verifies, to: AC-019-03 }
+      - { type: verifies, to: AC-NFR-012-01 }
+      - { type: verifies, to: AC-NFR-012-02 }
+
+  - id: VER-021
+    type: verification
+    title: Workbench Comprehensibility Review
+    lifecycle: defined
+    method: human-design-review
+    required: true
+    relationships:
+      - { type: verifies, to: AC-NFR-012-02 }
+      - { type: verifies, to: AC-NFR-012-03 }

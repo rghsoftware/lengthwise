@@ -1,0 +1,84 @@
+lengthwise: 1
+entities:
+  - id: TASK-011
+    type: task
+    title: Define reusable workbench application services
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: NFR-008 }
+
+  - id: TASK-012
+    type: task
+    title: Implement authorized artifact read and conflict-safe write service
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-011 }
+      - { type: implements, to: REQ-017 }
+      - { type: implements, to: NFR-009 }
+      - { type: implements, to: NFR-010 }
+
+  - id: TASK-013
+    type: task
+    title: Implement successful-build session and graph comparison
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-011 }
+      - { type: implements, to: REQ-018 }
+      - { type: implements, to: REQ-020 }
+      - { type: implements, to: NFR-011 }
+
+  - id: TASK-014
+    type: task
+    title: Add loopback workbench API and lw serve
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-012 }
+      - { type: depends-on, to: TASK-013 }
+      - { type: implements, to: REQ-013 }
+
+  - id: TASK-015
+    type: task
+    title: Build entity navigation, inspection, and relationship UI
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-014 }
+      - { type: implements, to: REQ-014 }
+      - { type: implements, to: REQ-015 }
+      - { type: implements, to: REQ-016 }
+
+  - id: TASK-016
+    type: task
+    title: Build CodeMirror artifact editing and validation feedback UI
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-015 }
+      - { type: implements, to: REQ-017 }
+      - { type: implements, to: REQ-018 }
+      - { type: implements, to: REQ-019 }
+
+  - id: TASK-017
+    type: task
+    title: Present successful graph-change consequences
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-016 }
+      - { type: implements, to: REQ-020 }
+
+  - id: TASK-018
+    type: task
+    title: Complete automated workbench verification and boundary inspection
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-017 }
+      - { type: implements, to: NFR-008 }
+      - { type: implements, to: NFR-009 }
+      - { type: implements, to: NFR-010 }
+      - { type: implements, to: NFR-011 }
+
+  - id: TASK-019
+    type: task
+    title: Dogfood and evaluate the minimal workbench core loop
+    lifecycle: planned
+    relationships:
+      - { type: depends-on, to: TASK-018 }
+      - { type: implements, to: NFR-012 }
