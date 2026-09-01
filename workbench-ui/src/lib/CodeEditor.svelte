@@ -9,10 +9,12 @@
 
   export let value = "";
   export let language: "markdown" | "yaml" = "yaml";
+  export let targetLine: { line: number; revision: number } | undefined;
   const dispatch = createEventDispatcher<{ change: string; save: void }>();
   let host: HTMLDivElement;
   let view: EditorView | undefined;
   let applying = false;
+  let lastTargetRevision = -1;
 
   onMount(() => {
     view = new EditorView({
@@ -37,6 +39,17 @@
     applying = true;
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
     applying = false;
+  }
+
+  $: if (view && targetLine && targetLine.revision !== lastTargetRevision) {
+    const lineNumber = Math.max(1, Math.min(targetLine.line, view.state.doc.lines));
+    const line = view.state.doc.line(lineNumber);
+    lastTargetRevision = targetLine.revision;
+    view.dispatch({
+      selection: { anchor: line.from },
+      effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+    });
+    view.focus();
   }
 
   onDestroy(() => view?.destroy());

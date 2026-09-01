@@ -12,6 +12,11 @@
   type Artifact = { path: string; language: "markdown" | "yaml"; content: string; version: string };
   type Snapshot = { revision: number; repositoryValid: boolean; retainedGraph: boolean; entities: Summary[]; diagnostics: Diagnostic[]; changes: Array<Record<string, unknown> & { kind: string }> };
 
+  class ApiError extends Error {
+    code: string;
+    constructor(code: string, message: string) { super(message); this.code = code; }
+  }
+
   let snapshot: Snapshot | undefined;
   let entities: Summary[] = [];
   let detail: Detail | undefined;
@@ -23,13 +28,17 @@
   let saving = false;
   let error = "";
   let notice = "";
+  let conflictPath = "";
+  let editorTarget: { line: number; revision: number } | undefined;
   $: dirty = Boolean(artifact && editorValue !== artifact.content);
   $: types = [...new Set((snapshot?.entities ?? []).map((entity) => entity.type))].sort();
 
   async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(path, init);
     const body = await response.json();
-    if (!response.ok || !body.ok) throw new Error(body.error?.message ?? body.error?.code ?? `Request failed (${response.status})`);
+    if (!response.ok || !body.ok) {
+      throw new ApiError(body.error?.code ?? "request-failed", body.error?.message ?? `Request failed (${response.status})`);
+    }
     return body;
   }
 
@@ -51,17 +60,33 @@
     return !dirty || confirm("Discard unsaved changes to this artifact?");
   }
 
-  async function selectEntity(id: string, push = true) {
-    if (detail?.entity.id === id) return;
+  async function loadArtifact(path: string, line?: number, allowDiscard = false) {
+    if (!allowDiscard && !mayDiscard()) return false;
+    const sourceBody = await api<{ artifact: Artifact }>(`/api/artifact?path=${encodeURIComponent(path)}`);
+    artifact = sourceBody.artifact;
+    editorValue = artifact.content;
+    conflictPath = "";
+    if (line) editorTarget = { line, revision: (editorTarget?.revision ?? 0) + 1 };
+    return true;
+  }
+
+  async function selectEntity(id: string, push = true, line?: number) {
+    if (detail?.entity.id === id) {
+      const source = detail.entity.source as Summary["source"];
+      if (artifact?.path !== source.artifactPath) {
+        await loadArtifact(source.artifactPath, line ?? source.line);
+      } else if (line) {
+        editorTarget = { line, revision: (editorTarget?.revision ?? 0) + 1 };
+      }
+      return;
+    }
     if (!mayDiscard()) return;
     error = "";
     notice = "";
     const body = await api<{ entity: Detail }>(`/api/entities/${encodeURIComponent(id)}`);
     detail = body.entity;
     const source = detail.entity.source as Summary["source"];
-    const sourceBody = await api<{ artifact: Artifact }>(`/api/artifact?path=${encodeURIComponent(source.artifactPath)}`);
-    artifact = sourceBody.artifact;
-    editorValue = artifact.content;
+    await loadArtifact(source.artifactPath, line ?? source.line, true);
     if (push) history.pushState({ entity: id }, "", `?entity=${encodeURIComponent(id)}`);
   }
 
@@ -69,6 +94,7 @@
     if (!artifact || !dirty || saving) return;
     saving = true;
     error = "";
+    conflictPath = "";
     notice = "Saving artifact and rebuilding the Project Graph…";
     try {
       const body = await api<{ artifact: Artifact; snapshot: Snapshot }>("/api/artifact", {
@@ -90,15 +116,34 @@
       }
     } catch (cause) {
       error = (cause as Error).message;
+      if (cause instanceof ApiError && cause.code === "conflict") conflictPath = artifact.path;
       notice = "";
     } finally {
       saving = false;
     }
   }
 
-  function openFinding(finding: Diagnostic) {
-    if (finding.entityId) selectEntity(finding.entityId);
-    else if (finding.location) notice = `Responsible source: ${finding.location.artifactPath}${finding.location.line ? `:${finding.location.line}` : ""}`;
+  async function reloadConflict() {
+    if (!conflictPath || !confirm(`Replace the unsaved editor buffer with the current repository version of ${conflictPath}?`)) return;
+    try {
+      await loadArtifact(conflictPath, undefined, true);
+      error = "";
+      notice = `Reloaded the current repository version of ${conflictPath}.`;
+    } catch (cause) {
+      error = (cause as Error).message;
+    }
+  }
+
+  async function openFinding(finding: Diagnostic) {
+    try {
+      if (finding.entityId) {
+        await selectEntity(finding.entityId, true, finding.location?.line);
+      } else if (finding.location && await loadArtifact(finding.location.artifactPath, finding.location.line)) {
+        notice = `Opened responsible source: ${finding.location.artifactPath}${finding.location.line ? `:${finding.location.line}` : ""}`;
+      }
+    } catch (cause) {
+      error = (cause as Error).message;
+    }
   }
 
   onMount(async () => {
@@ -133,7 +178,7 @@
   </div>
 </header>
 
-{#if error}<div class="banner error" role="alert">{error}</div>{/if}
+{#if error}<div class="banner error" role="alert"><span>{error}</span>{#if conflictPath}<Button on:click={reloadConflict}>Reload repository version</Button>{/if}</div>{/if}
 {#if notice}<div class:warning={!snapshot?.repositoryValid} class="banner" role="status">{notice}</div>{/if}
 
 <main>
@@ -181,7 +226,7 @@
   <section class="source" aria-label="Authoritative artifact editor">
     {#if artifact}
       <div class="source-head"><div><p class="eyebrow">Authoritative artifact</p><strong>{artifact.path}</strong></div><Badge tone={dirty ? "warning" : "neutral"}>{dirty ? "Modified" : artifact.language}</Badge></div>
-      <CodeEditor bind:value={editorValue} language={artifact.language} on:change={(event) => editorValue = event.detail} on:save={save} />
+      <CodeEditor bind:value={editorValue} language={artifact.language} targetLine={editorTarget} on:change={(event) => editorValue = event.detail} on:save={save} />
     {:else}<div class="empty hero"><p>Select an entity to open its authoritative artifact.</p></div>{/if}
   </section>
 </main>

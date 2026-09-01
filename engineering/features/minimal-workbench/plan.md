@@ -67,11 +67,14 @@ TASK-012       TASK-013
        TASK-017
           ▼
        TASK-018
-          ▼
-       TASK-019
+       ┌──┴──┐
+       ▼     ▼
+TASK-019  TASK-020
 ```
 
 Artifact safety and graph-session behavior are developed as core application services before UI integration. The UI is delivered as vertical capabilities after the transport contract exists. Evidence consolidation and dogfood evaluation occur only after the complete core loop is available.
+
+TASK-020 was added and completed during implementation reconciliation. It preserves the accepted requirements while closing gaps discovered after the initial implementation: explicit conflict reload/recovery, navigation for findings whose responsible source differs from the open artifact, and complete automated coverage of normalized graph-change categories.
 
 ## Verification strategy
 

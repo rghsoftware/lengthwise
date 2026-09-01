@@ -8,7 +8,7 @@ lifecycle: accepted
 # F-002 — Minimal Workbench Build Contracts
 
 **Feature:** F-002
-**Lifecycle:** ready
+**Lifecycle:** implemented pending human evaluation
 **Significance:** L
 **Effective rigor:** standard
 
@@ -256,3 +256,37 @@ Participant count appropriate to an internal MVP, evaluation script details, not
 ### DELEGATED
 
 Scheduling and facilitation logistics.
+
+## TASK-020 — Reconciled interaction and verification gaps
+
+**Implements:** REQ-019, REQ-020, NFR-010
+**Evidence:** VER-016, VER-017, VER-018
+
+### Objective
+
+Close implementation gaps found while reconciling the completed slice with its accepted contracts, without broadening F-002.
+
+### LOCKED
+
+- A stale-version conflict preserves the rejected editor buffer, identifies the affected artifact, and offers an explicit way to load the current repository version without presenting the rejected buffer as saved.
+- Activating a finding with known source context opens its authorized responsible artifact when different from the current artifact and targets the known line when the editor can do so.
+- Automated comparison tests exercise entity addition/removal, lifecycle change, relationship addition/removal, coverage loss, and finding addition/resolution, including proof that failed rebuilds do not advance the successful baseline.
+- Automated HTTP security evidence includes encoded traversal at the untrusted boundary in addition to direct service path tests.
+- Changes remain inside the existing local HTTP, artifact-service, session, comparison-service, and Svelte presentation boundaries.
+
+### BOUNDED
+
+Conflict-recovery control placement, editor line-target presentation, and test organization.
+
+### DELEGATED
+
+Microcopy and non-semantic styling consistent with the existing workbench.
+
+## As-built bounded choices
+
+- The session and successful graph baseline are in memory and last for the server process lifetime.
+- Artifact versions are SHA-256 content hashes; successful saves use a temporary file and same-directory atomic rename.
+- The HTTP boundary uses request/response JSON endpoints; F-002 demonstrated no need for SSE or WebSockets.
+- `lw serve` selects an available port and binds to `127.0.0.1`; it reports but does not automatically open the URL.
+- Non-loopback binding exists only as an internal server option used for local development. It is not a supported `lw serve` flag, and remote/cross-machine operation remains outside F-002's trust boundary.
+- The SvelteKit client is emitted as a static production build and served by Bun. Tailwind CSS 4 supplies local Tark-inspired presentation components; Ark UI is used where a suitable behavior primitive is present.

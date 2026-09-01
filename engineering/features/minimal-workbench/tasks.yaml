@@ -82,3 +82,13 @@ entities:
     relationships:
       - { type: depends-on, to: TASK-018 }
       - { type: implements, to: NFR-012 }
+
+  - id: TASK-020
+    type: task
+    title: Close reconciled workbench interaction and verification gaps
+    lifecycle: done
+    relationships:
+      - { type: depends-on, to: TASK-018 }
+      - { type: implements, to: REQ-019 }
+      - { type: implements, to: REQ-020 }
+      - { type: implements, to: NFR-010 }

@@ -8,6 +8,7 @@ import { createFixtureRepo, removeFixtureRepo } from "../test-support/fixture-re
 import { buildProjectGraph } from "../graph/build.ts";
 import { runChecks } from "../checks/run.ts";
 import { ProjectGraph } from "../graph/project-graph.ts";
+import { errorDiagnostic } from "../diagnostics.ts";
 
 const cleanup: string[] = [];
 const servers: Array<ReturnType<typeof Bun.serve>> = [];
@@ -155,6 +156,50 @@ test("graph comparison is deterministic and independent of collection order", as
   expect(compareSuccessfulGraphs({ graph: before.graph, diagnostics }, { graph: reversed, diagnostics })).toEqual([]);
 });
 
+test("graph comparison reports every required normalized change category", async () => {
+  const beforeRoot = await fixture();
+  const afterRoot = await createFixtureRepo({
+    ".lengthwise/project.yaml": CONFIG,
+    "engineering/model.yaml": MODEL
+      .replace("lifecycle: planned", "lifecycle: in-progress")
+      .replace("      - { type: implements, to: REQ-001 }\n", "")
+      .replace(/  - id: VER-001[\s\S]*?(?=  - id: TASK-001)/, "")
+      .concat("  - id: TASK-002\n    type: task\n    lifecycle: planned\n    title: Newly added task\n    relationships:\n      - { type: depends-on, to: TASK-001 }\n"),
+  });
+  cleanup.push(afterRoot);
+  const before = await buildProjectGraph(beforeRoot);
+  const after = await buildProjectGraph(afterRoot);
+  if (!before.ok || !after.ok) throw new Error("comparison fixtures did not build");
+  const oldFinding = errorDiagnostic("test/resolved", "Resolved finding", { entityId: "REQ-001" });
+  const newFinding = errorDiagnostic("test/added", "Added finding", { entityId: "TASK-002" });
+  const changes = compareSuccessfulGraphs(
+    { graph: before.graph, diagnostics: [oldFinding] },
+    { graph: after.graph, diagnostics: [newFinding] },
+  );
+  expect(new Set(changes.map((change) => change.kind))).toEqual(new Set([
+    "entity-added", "entity-removed", "lifecycle-changed",
+    "relationship-added", "relationship-removed", "coverage-lost", "finding-added", "finding-resolved",
+  ]));
+  expect(changes.filter((change) => change.kind === "coverage-lost").map((change) => change.coverage).sort())
+    .toEqual(["implementation", "verification"]);
+});
+
+test("failed rebuild does not advance the successful comparison baseline", async () => {
+  const root = await fixture();
+  const started = await WorkbenchSession.start(root);
+  if (!started.ok) throw new Error("fixture did not start");
+  const initial = await started.session.readArtifact("engineering/model.yaml");
+  const failed = await started.session.saveArtifact(initial.path, "lengthwise: 1\nentities: [", initial.version);
+  const recovered = await started.session.saveArtifact(
+    initial.path,
+    MODEL.replace("lifecycle: planned", "lifecycle: done"),
+    failed.artifact.version,
+  );
+  expect(recovered.snapshot.changes).toContainEqual({
+    kind: "lifecycle-changed", entityId: "TASK-001", before: "planned", after: "done",
+  });
+});
+
 test("HTTP API is loopback, addressable, same-origin protected, and serves the built UI", async () => {
   const root = await fixture();
   const result = await startWorkbenchServer(root, { port: 0 });
@@ -167,6 +212,7 @@ test("HTTP API is loopback, addressable, same-origin protected, and serves the b
   const snapshotBody = await snapshot.json() as { snapshot: { entities: unknown[] } };
   expect(snapshotBody.snapshot.entities.length).toBe(4);
   expect((await fetch(`${result.url}/?entity=REQ-001`)).status).toBe(200);
+  expect((await fetch(`${result.url}/api/artifact?path=%2e%2e%2foutside.yaml`)).status).toBe(403);
 
   const artifact = await result.session.readArtifact("engineering/model.yaml");
   const rejected = await fetch(`${result.url}/api/artifact`, {
