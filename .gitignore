@@ -4,6 +4,9 @@ node_modules
 # output
 out
 dist
+workbench-ui/build
+workbench-ui/.svelte-kit
+.svelte-kit
 *.tgz
 
 # code coverage

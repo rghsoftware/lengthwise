@@ -42,7 +42,7 @@ Preserve the existing graph and check modules as the semantic core. Refactor onl
 - Bun and TypeScript;
 - existing Project Graph, check, and SQLite capabilities;
 - SvelteKit for the local browser UI;
-- [Tark UI](https://www.tarkui.com/?framework=svelte) for the default Svelte component set;
+- [Tark UI](https://github.com/anubra266/tarkui) Svelte examples as the visual reference, using Tailwind CSS 4 and Ark UI primitives;
 - CodeMirror 6 with Markdown and YAML language support;
 - Bun-hosted local HTTP service launched by `lw serve`;
 - Bun test for automated verification.

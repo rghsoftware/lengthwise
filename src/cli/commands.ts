@@ -6,11 +6,25 @@ import { formatDiagnostic } from "./format.ts";
 import type { Diagnostic } from "../diagnostics.ts";
 import type { Entity } from "../domain/entities.ts";
 import type { ProjectGraph } from "../graph/project-graph.ts";
+import { startWorkbenchServer } from "../workbench/server.ts";
 
 export interface CommandResult {
   exitCode: number;
   lines: string[];
   data: unknown;
+  waitUntil?: Promise<void>;
+}
+
+/** `lw serve` — F-002 local browser workbench. */
+export async function cmdServe(repoRoot: string): Promise<CommandResult> {
+  const result = await startWorkbenchServer(repoRoot);
+  if (!result.ok) return buildFailureResult(result.diagnostics);
+  return {
+    exitCode: 0,
+    data: { ok: true, url: result.url },
+    lines: [`Lengthwise workbench: ${result.url}`],
+    waitUntil: new Promise<void>(() => {}),
+  };
 }
 
 function authoredProperties(entity: Entity): Record<string, unknown> {

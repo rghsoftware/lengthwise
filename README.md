@@ -6,10 +6,16 @@ To install dependencies:
 bun install
 ```
 
-To run:
+To run the CLI:
 
 ```bash
-bun run index.ts
+bun run lw check
 ```
 
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+To launch the local Minimal Workbench:
+
+```bash
+bun run lw serve
+```
+
+The first launch builds the SvelteKit client when needed, then prints a loopback URL. The workbench edits recognized repository artifacts directly and validates the Project Graph after explicit saves.

@@ -3,7 +3,7 @@ lengthwise: 1
 id: F-002
 type: feature
 title: Minimal Workbench
-lifecycle: ready
+lifecycle: active
 significance: L
 relationships:
   - { type: addresses, to: REQ-013 }
@@ -139,7 +139,7 @@ The MVP is a single-user local development tool. It binds to loopback by default
 
 - Bun and TypeScript remain the backend/core baseline.
 - SvelteKit is the browser UI framework.
-- Tark UI's Svelte component set is the default source for workbench UI components.
+- Tark UI's Svelte examples are the visual reference, implemented with Tailwind CSS 4 and Ark UI primitives.
 - CodeMirror 6 is the source editor.
 - `lw serve` launches the browser-hosted local UI.
 - HTTP is required for the local client boundary; WebSocket or server-sent-event use is bounded by demonstrated interaction needs.

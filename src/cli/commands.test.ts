@@ -168,6 +168,15 @@ test("--json prints the structured data payload", async () => {
   expect((result.data as { entity: { id: string } }).entity.id).toBe("REQ-001");
 });
 
+test("lw serve rejects a directory without Lengthwise configuration", async () => {
+  const root = await createFixtureRepo({});
+  cleanup.push(root);
+  const result = await runCli(["serve"], root);
+  expect(result.exitCode).toBe(1);
+  expect(result.lines.some((line) => line.includes("config/missing"))).toBe(true);
+  expect(result.waitUntil).toBeUndefined();
+});
+
 // Dogfood: the real Lengthwise repository's own artifacts, end to end through the CLI.
 test("lw check, show, trace, and ready work against this repository's own artifacts", async () => {
   const repoRoot = process.cwd();
@@ -185,6 +194,6 @@ test("lw check, show, trace, and ready work against this repository's own artifa
 
   const ready = await runCli(["ready"], repoRoot);
   expect(ready.exitCode).toBe(0);
-  // F-001's tasks are all done, so none are candidates for readiness.
-  expect((ready.data as { ready: string[] }).ready).toEqual([]);
+  // Automated F-002 implementation is complete; human usability evaluation remains ready.
+  expect((ready.data as { ready: string[] }).ready).toEqual(["TASK-019"]);
 });

@@ -32,12 +32,12 @@ These contracts contain the relevant slice for each task. They do not replace th
 - Graph-change comparison uses consecutive successful workbench-session graphs; failure does not advance the baseline (DR-016).
 - Editing uses explicit save, visible dirty state, and discard protection (DR-017).
 - The MVP is a SvelteKit and CodeMirror 6 browser client over reusable services and a loopback HTTP boundary launched by `lw serve` (DR-018).
-- Use [Tark UI's Svelte components](https://www.tarkui.com/?framework=svelte) by default. A custom or alternate component is allowed when Tark UI has no suitable component or when using it would violate a locked accessibility, interaction, security, or state-communication contract; document any material exception in implementation evidence.
+- Use [Tark UI's Svelte examples](https://github.com/anubra266/tarkui) as the visual reference with Tailwind CSS 4 and Ark UI primitives. A custom or alternate primitive is allowed when Tark UI and Ark UI have no suitable pattern or when using one would violate a locked accessibility, interaction, security, or state-communication contract; document any material exception in implementation evidence.
 - No task may add a graph canvas, workflow engine, desktop wrapper, remote service, general filesystem editor, or Git-management surface to F-002.
 
 ### BOUNDED
 
-Tark UI component selection within the locked exception rule, package versions compatible with the repository, internal module layout, API resource naming, component decomposition, CSS strategy, and whether event updates use request/response, SSE, or WebSocket.
+Tark UI pattern selection within the locked exception rule, Tailwind and Ark UI package versions compatible with the repository, internal module layout, API resource naming, component decomposition, and whether event updates use request/response, SSE, or WebSocket.
 
 ## TASK-011 — Reusable workbench application services
 

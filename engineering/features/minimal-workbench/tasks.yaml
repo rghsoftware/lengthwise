@@ -3,14 +3,14 @@ entities:
   - id: TASK-011
     type: task
     title: Define reusable workbench application services
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: NFR-008 }
 
   - id: TASK-012
     type: task
     title: Implement authorized artifact read and conflict-safe write service
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-011 }
       - { type: implements, to: REQ-017 }
@@ -20,7 +20,7 @@ entities:
   - id: TASK-013
     type: task
     title: Implement successful-build session and graph comparison
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-011 }
       - { type: implements, to: REQ-018 }
@@ -30,7 +30,7 @@ entities:
   - id: TASK-014
     type: task
     title: Add loopback workbench API and lw serve
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-012 }
       - { type: depends-on, to: TASK-013 }
@@ -39,7 +39,7 @@ entities:
   - id: TASK-015
     type: task
     title: Build entity navigation, inspection, and relationship UI
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-014 }
       - { type: implements, to: REQ-014 }
@@ -49,7 +49,7 @@ entities:
   - id: TASK-016
     type: task
     title: Build CodeMirror artifact editing and validation feedback UI
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-015 }
       - { type: implements, to: REQ-017 }
@@ -59,7 +59,7 @@ entities:
   - id: TASK-017
     type: task
     title: Present successful graph-change consequences
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-016 }
       - { type: implements, to: REQ-020 }
@@ -67,7 +67,7 @@ entities:
   - id: TASK-018
     type: task
     title: Complete automated workbench verification and boundary inspection
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: depends-on, to: TASK-017 }
       - { type: implements, to: NFR-008 }
