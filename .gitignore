@@ -41,3 +41,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .lengthwise/index.db-wal
 .lengthwise/index.db-shm
 .lengthwise/index.db-journal
+
+# Lengthwise operational workflow state (DR-003, DR-023) — local and non-authoritative
+.lengthwise/state.db
+.lengthwise/state.db-wal
+.lengthwise/state.db-shm
+.lengthwise/state.db-journal

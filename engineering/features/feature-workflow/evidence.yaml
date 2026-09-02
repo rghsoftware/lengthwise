@@ -1,0 +1,42 @@
+lengthwise: 1
+entities:
+  - id: EVID-F003-AUTOMATED-001
+    type: evidence
+    title: F-003 automated verification suite
+    lifecycle: recorded
+    outcome: passed
+    result: "TypeScript compilation, 99 Bun tests, production workbench build, lw index, and lw check passed on 2026-09-01."
+    applicability: "F-003 final closeout implementation and authoritative artifacts as validated on 2026-09-01."
+    relationships:
+      - { type: supports, to: VER-022 }
+      - { type: supports, to: VER-023 }
+      - { type: supports, to: VER-024 }
+      - { type: supports, to: VER-025 }
+      - { type: supports, to: VER-027 }
+      - { type: supports, to: VER-028 }
+      - { type: supports, to: VER-030 }
+      - { type: supports, to: VER-032 }
+  - id: EVID-F003-BROWSER-001
+    type: evidence
+    title: F-003 browser and usability verification attempt
+    lifecycle: superseded
+    outcome: inconclusive
+    result: "The production workbench bundle built and HTTP workflow integration tests passed, but interactive local-browser access was denied by the browser permission boundary before observable UI and moderated usability assertions could run."
+    applicability: "F-003 workbench UI and local workflow endpoints as of 2026-09-01."
+    relationships:
+      - { type: supports, to: VER-026 }
+      - { type: supports, to: VER-029 }
+      - { type: supports, to: VER-031 }
+      - { type: supports, to: VER-033 }
+  - id: EVID-F003-MANUAL-001
+    type: evidence
+    title: F-003 repository-owner workbench review
+    lifecycle: recorded
+    outcome: passed
+    result: "The repository owner reviewed the workbench on a 1440p display and accepted the corrected interaction: workflow context, persistent findings drawer, affected-entity markers, sticky local findings, direct source navigation, and an action-first inspector hierarchy."
+    applicability: "F-003 final workbench implementation and authoritative artifacts reviewed on 2026-09-01."
+    relationships:
+      - { type: supports, to: VER-026 }
+      - { type: supports, to: VER-029 }
+      - { type: supports, to: VER-031 }
+      - { type: supports, to: VER-033 }

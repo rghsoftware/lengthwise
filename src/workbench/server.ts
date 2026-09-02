@@ -2,6 +2,7 @@ import { extname, resolve } from "node:path";
 import { ArtifactAccessError } from "./artifact-service.ts";
 import { WorkbenchSession } from "./session.ts";
 import { errorDiagnostic } from "../diagnostics.ts";
+import { WorkflowCoordinator } from "../workflow/coordinator.ts";
 
 export interface WorkbenchServerOptions {
   hostname?: string;
@@ -10,7 +11,7 @@ export interface WorkbenchServerOptions {
 }
 
 export type StartWorkbenchServerResult =
-  | { ok: true; server: ReturnType<typeof Bun.serve>; session: WorkbenchSession; url: string }
+  | { ok: true; server: ReturnType<typeof Bun.serve>; session: WorkbenchSession; workflow: WorkflowCoordinator; url: string }
   | { ok: false; diagnostics: import("../diagnostics.ts").Diagnostic[] };
 
 function json(value: unknown, status = 200, headers: Record<string, string> = {}): Response {
@@ -41,6 +42,7 @@ export async function startWorkbenchServer(
   const started = await WorkbenchSession.start(repoRoot);
   if (!started.ok) return started;
   const session = started.session;
+  const workflow = await WorkflowCoordinator.open(repoRoot);
   const hostname = options.hostname ?? "127.0.0.1";
   const uiRoot = options.uiRoot ?? resolve(import.meta.dir, "../../workbench-ui/build");
 
@@ -102,6 +104,22 @@ export async function startWorkbenchServer(
           }
           return json({ ok: true, ...(await session.saveArtifact(body.path, body.content, body.expectedVersion)) });
         }
+        if (url.pathname.startsWith("/api/workflow/") && request.method === "GET") {
+          const featureId = decodeURIComponent(url.pathname.slice("/api/workflow/".length));
+          return json({ ok: true, assessment: await workflow.assess(featureId), run: workflow.state.active(featureId), history: workflow.state.history(featureId) });
+        }
+        if (url.pathname === "/api/workflow" && request.method === "POST") {
+          if (request.headers.get("origin") !== origin) return json({ ok: false, error: { code: "untrusted-origin" } }, 403);
+          const body = await request.json() as { featureId?: unknown };
+          if (typeof body.featureId !== "string") return json({ ok: false, error: { code: "invalid-request" } }, 400);
+          return json({ ok: true, run: await workflow.start(body.featureId), assessment: await workflow.assess(body.featureId) }, 201);
+        }
+        if (url.pathname === "/api/workflow/gate" && request.method === "POST") {
+          if (request.headers.get("origin") !== origin) return json({ ok: false, error: { code: "untrusted-origin" } }, 403);
+          const body = await request.json() as { runId?: unknown; gate?: unknown; fingerprint?: unknown };
+          if (typeof body.runId !== "string" || typeof body.fingerprint !== "string" || !["specification","build-contract","verification"].includes(String(body.gate))) return json({ ok: false, error: { code: "invalid-request" } }, 400);
+          return json({ ok: true, run: workflow.approve(body.runId, body.gate as "specification"|"build-contract"|"verification", body.fingerprint) });
+        }
         if (url.pathname.startsWith("/api/")) return json({ ok: false, error: { code: "not-found" } }, 404);
 
         const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
@@ -125,5 +143,5 @@ export async function startWorkbenchServer(
     };
   }
   origin = `http://${hostname}:${server.port}`;
-  return { ok: true, server, session, url: origin };
+  return { ok: true, server, session, workflow, url: origin };
 }

@@ -3,7 +3,7 @@ entities:
   - id: TASK-021
     type: task
     title: Extend domain entities and relationship registry
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-025 }
       - { type: implements, to: REQ-030 }
@@ -14,7 +14,7 @@ entities:
   - id: TASK-022
     type: task
     title: Parse normalize and migrate workflow engineering entities
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-022 }
       - { type: implements, to: REQ-025 }
@@ -27,7 +27,7 @@ entities:
   - id: TASK-023
     type: task
     title: Implement lifecycle-aware completeness and rigor inheritance
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-026 }
       - { type: implements, to: REQ-027 }
@@ -38,7 +38,7 @@ entities:
   - id: TASK-024
     type: task
     title: Implement operational workflow state store
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-023 }
       - { type: implements, to: REQ-038 }
@@ -50,7 +50,7 @@ entities:
   - id: TASK-025
     type: task
     title: Implement workflow run and repository reconciliation services
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-021 }
       - { type: implements, to: REQ-024 }
@@ -64,7 +64,7 @@ entities:
   - id: TASK-026
     type: task
     title: Implement specification authoring and gate coordination
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-022 }
       - { type: implements, to: REQ-025 }
@@ -75,7 +75,7 @@ entities:
   - id: TASK-027
     type: task
     title: Implement planning guidance and derived readiness
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-029 }
       - { type: implements, to: REQ-036 }
@@ -86,7 +86,7 @@ entities:
   - id: TASK-028
     type: task
     title: Implement deterministic Build Contract generation and staleness
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-030 }
       - { type: implements, to: REQ-031 }
@@ -99,7 +99,7 @@ entities:
   - id: TASK-029
     type: task
     title: Implement Build Contract gate and implementation coordination
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-032 }
       - { type: implements, to: REQ-034 }
@@ -109,7 +109,7 @@ entities:
   - id: TASK-030
     type: task
     title: Implement Evidence applicability and verification satisfaction
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-033 }
       - { type: implements, to: REQ-036 }
@@ -119,7 +119,7 @@ entities:
   - id: TASK-031
     type: task
     title: Implement reconciliation and completion eligibility
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-035 }
       - { type: implements, to: REQ-036 }
@@ -130,7 +130,7 @@ entities:
   - id: TASK-032
     type: task
     title: Integrate Feature Workflow into the Minimal Workbench
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: REQ-037 }
       - { type: implements, to: NFR-020 }
@@ -141,7 +141,7 @@ entities:
   - id: TASK-033
     type: task
     title: Complete automated workflow verification
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: NFR-014 }
       - { type: implements, to: NFR-016 }
@@ -155,7 +155,7 @@ entities:
   - id: TASK-034
     type: task
     title: Dogfood reconcile and evaluate Feature Workflow
-    lifecycle: planned
+    lifecycle: done
     relationships:
       - { type: implements, to: NFR-019 }
       - { type: implements, to: NFR-024 }

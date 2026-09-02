@@ -2,7 +2,7 @@
 lengthwise: 1
 id: DOC-F003-BUILD-CONTRACTS
 type: document
-lifecycle: accepted
+lifecycle: superseded
 ---
 
 # F-003 — Feature Workflow Bootstrap Build Contracts

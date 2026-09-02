@@ -3,7 +3,7 @@ lengthwise: 1
 id: F-003
 type: feature
 title: Feature Workflow
-lifecycle: ready
+lifecycle: complete
 significance: XL
 relationships:
   - { type: addresses, to: REQ-021 }
@@ -138,7 +138,7 @@ Evidence uses lifecycle `recorded | superseded | withdrawn` and records an obser
 
 A BuildContract is a first-class authoritative entity with lifecycle `accepted | superseded` representing an accepted implementation handoff boundary. A generated candidate is derived data, not a BuildContract entity, until accepted and saved to Git. `BuildContract --contracts--> Task` identifies its handoff scope and `BuildContract --includes--> Entity` records its bounded context. Its machine-readable content records relevant requirements/NFRs, ACs, governing decisions, LOCKED/BOUNDED/DELEGATED authority, dependencies, verification obligations, and a deterministic governing-context fingerprint. A later graph state can therefore derive whether the accepted contract is current or stale without changing its lifecycle.
 
-The pre-implementation contracts for F-003 use the established document representation because the running F-001 parser cannot recognize `build-contract` yet. TASK-022 migrates this bootstrap artifact after the new entity type is implemented.
+F-003's accepted contracts are first-class machine-readable BuildContract entities. The pre-implementation bootstrap document is retained as superseded history after TASK-022 migrated its handoff boundaries.
 
 ## Rigor and completeness
 

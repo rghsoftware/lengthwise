@@ -20,7 +20,10 @@ export function summarizeEntity(entity: Entity): EntitySummary {
 }
 
 function authoredProperties(entity: Entity): Record<string, unknown> {
-  const { id: _id, type: _type, lifecycle: _lifecycle, source: _source, ...properties } = entity;
+  // The full narrative body is already visible and editable in the adjacent
+  // authoritative artifact. Repeating it as escaped JSON makes the useful
+  // graph controls undiscoverable, so this projection keeps compact metadata.
+  const { id: _id, type: _type, lifecycle: _lifecycle, source: _source, body: _body, ...properties } = entity;
   return properties;
 }
 
@@ -33,7 +36,7 @@ export class WorkbenchQueryService {
       .filter((entity) => !options.type || entity.type === options.type)
       .filter((entity) => {
         if (!query) return true;
-        const searchable = [entity.id, entityLabel(entity), JSON.stringify(authoredProperties(entity))]
+        const searchable = [entity.id, entityLabel(entity), entity.body, JSON.stringify(authoredProperties(entity))]
           .join("\n")
           .toLocaleLowerCase();
         return searchable.includes(query);

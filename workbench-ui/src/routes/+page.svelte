@@ -11,6 +11,8 @@
   type Detail = { entity: Summary & Record<string, unknown>; label: string; authoredProperties: Record<string, unknown>; derivedState: Record<string, unknown>; relationships: Array<{ direction: string; type: string; label: string; provenance: string; counterpart: Summary | { id: string; missing: true } }> };
   type Artifact = { path: string; language: "markdown" | "yaml"; content: string; version: string };
   type Snapshot = { revision: number; repositoryValid: boolean; retainedGraph: boolean; entities: Summary[]; diagnostics: Diagnostic[]; changes: Array<Record<string, unknown> & { kind: string }> };
+  type WorkflowAssessment = { featureId:string; repositoryValid:boolean; blockingQuestions:string[]; tasks:Array<{id:string;contract?:string;contractStale?:boolean}>; specificationEligible:boolean; buildContractEligible:boolean; completionEligible:boolean; fingerprint:string };
+  type WorkflowRun = { id:string; activity:string; state:string };
 
   class ApiError extends Error {
     code: string;
@@ -30,8 +32,19 @@
   let notice = "";
   let conflictPath = "";
   let editorTarget: { line: number; revision: number } | undefined;
+  let workflow: WorkflowAssessment | undefined;
+  let workflowRun: WorkflowRun | undefined;
+  let findingsOpen = true;
   $: dirty = Boolean(artifact && editorValue !== artifact.content);
   $: types = [...new Set((snapshot?.entities ?? []).map((entity) => entity.type))].sort();
+  $: blockingFindings = snapshot?.diagnostics.filter((finding) => finding.severity === "error") ?? [];
+  $: selectedFindings = detail ? findingsForEntity(detail.entity as Summary) : [];
+
+  function findingsForEntity(entity: Summary): Diagnostic[] {
+    return snapshot?.diagnostics.filter((finding) =>
+      finding.entityId === entity.id || finding.location?.artifactPath === entity.source.artifactPath
+    ) ?? [];
+  }
 
   async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(path, init);
@@ -85,9 +98,20 @@
     notice = "";
     const body = await api<{ entity: Detail }>(`/api/entities/${encodeURIComponent(id)}`);
     detail = body.entity;
+    workflow = undefined; workflowRun = undefined;
+    if (detail.entity.type === "feature") {
+      const workflowBody = await api<{assessment:WorkflowAssessment;run?:WorkflowRun}>(`/api/workflow/${encodeURIComponent(id)}`);
+      workflow = workflowBody.assessment; workflowRun = workflowBody.run;
+    }
     const source = detail.entity.source as Summary["source"];
     await loadArtifact(source.artifactPath, line ?? source.line, true);
     if (push) history.pushState({ entity: id }, "", `?entity=${encodeURIComponent(id)}`);
+  }
+
+  async function startWorkflow() {
+    if (!detail || detail.entity.type !== "feature") return;
+    const body = await api<{run:WorkflowRun;assessment:WorkflowAssessment}>("/api/workflow", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({featureId:detail.entity.id})});
+    workflowRun=body.run; workflow=body.assessment; notice=`Workflow started for ${detail.entity.id}.`;
   }
 
   async function save() {
@@ -105,6 +129,7 @@
       artifact = body.artifact;
       editorValue = artifact.content;
       snapshot = body.snapshot;
+      if (snapshot.diagnostics.length) findingsOpen = true;
       notice = snapshot.retainedGraph
         ? "Saved, but the repository cannot currently produce a Project Graph. Navigation is using the last successfully built graph."
         : snapshot.repositoryValid
@@ -177,6 +202,7 @@
     {#if dirty}<Badge tone="warning">Unsaved</Badge>{:else}<Badge tone="good">Saved</Badge>{/if}
     {#if snapshot?.retainedGraph}<Hint text="The saved repository is invalid. Navigation remains anchored to the most recent successful graph."><Badge tone="danger">Last successful graph</Badge></Hint>{/if}
     {#if snapshot && !snapshot.repositoryValid && !snapshot.retainedGraph}<Hint text="The current Project Graph was rebuilt, but blocking checks failed."><Badge tone="danger">Checks failing</Badge></Hint>{/if}
+    {#if snapshot?.diagnostics.length}<Button variant="danger" on:click={() => findingsOpen = !findingsOpen}>{blockingFindings.length} blocking · {snapshot.diagnostics.length} findings</Button>{/if}
     <Button variant="primary" disabled={!dirty || saving} on:click={save}>{saving ? "Saving…" : "Save"}</Button>
   </div>
 </header>
@@ -197,8 +223,8 @@
     {:else if entities.length === 0}<p class="empty">No entities match this search.</p>
     {:else}
       <nav>{#each entities as entity}
-        <button class:active={detail?.entity.id === entity.id} on:click={() => selectEntity(entity.id)}>
-          <span><strong>{entity.id}</strong><small>{entity.label}</small></span>
+        <button class:active={detail?.entity.id === entity.id} class:has-finding={findingsForEntity(entity).length > 0} on:click={() => selectEntity(entity.id)}>
+          <span><strong>{entity.id}{#if findingsForEntity(entity).length}<span class="finding-dot" aria-label="Has findings">!</span>{/if}</strong><small>{entity.label}</small></span>
           <span class="meta">{entity.type}<br />{entity.lifecycle}</span>
         </button>
       {/each}</nav>
@@ -208,13 +234,27 @@
   <section class="inspector" aria-label="Entity inspection">
     {#if !detail}<div class="empty hero"><h1>Inspect the Project Graph</h1><p>Select an entity to see authored properties, derived state, relationships, and source.</p></div>
     {:else}
+      {#if selectedFindings.length}
+        <div class="entity-findings" role="alert">
+          <strong>{selectedFindings.length} finding{selectedFindings.length === 1 ? "" : "s"} affect this entity or artifact</strong>
+          {#each selectedFindings as finding}<button on:click={() => openFinding(finding)}><code>{finding.code}</code><span>{finding.message}</span></button>{/each}
+        </div>
+      {/if}
       <div class="section-head"><div><p class="eyebrow">{detail.entity.type}</p><h1>{detail.entity.id}</h1><p>{detail.label}</p></div><Badge>{detail.entity.lifecycle}</Badge></div>
       <dl>
         <dt>Source</dt><dd>{(detail.entity.source as Summary["source"]).artifactPath}:{(detail.entity.source as Summary["source"]).line ?? "?"}</dd>
         {#each Object.entries(detail.derivedState) as [key, value]}<dt>{key}</dt><dd>{JSON.stringify(value)}</dd>{/each}
       </dl>
-      <h2>Authored properties</h2>
-      <pre>{JSON.stringify(detail.authoredProperties, null, 2)}</pre>
+      {#if workflow}
+        <h2>Feature workflow</h2>
+        <div class="workflow-card">
+          <div><strong>{workflowRun?.activity ?? "No active run"}</strong><Badge tone={workflowRun ? "good" : "neutral"}>{workflowRun?.state ?? "idle"}</Badge></div>
+          <p>Specification {workflow.specificationEligible ? "eligible" : "blocked"} · Contract {workflow.buildContractEligible ? "eligible" : "blocked"} · Completion {workflow.completionEligible ? "eligible" : "blocked"}</p>
+          {#if workflow.blockingQuestions.length}<p>Blocking questions: {workflow.blockingQuestions.join(", ")}</p>{/if}
+          {#if workflow.tasks.some(task => !task.contract || task.contractStale)}<p>{workflow.tasks.filter(task => !task.contract || task.contractStale).length} task contract(s) missing or stale.</p>{/if}
+          {#if !workflowRun}<Button on:click={startWorkflow}>Start workflow</Button>{/if}
+        </div>
+      {/if}
       <h2>Relationships</h2>
       {#if detail.relationships.length === 0}<p class="empty">No connected relationships.</p>{/if}
       <div class="relationships">{#each detail.relationships as relationship}
@@ -223,6 +263,10 @@
           <strong>{relationship.counterpart.id}</strong><small>{relationship.provenance}</small>
         </button>
       {/each}</div>
+      <details class="authored-metadata">
+        <summary>Authored metadata</summary>
+        <pre>{JSON.stringify(detail.authoredProperties, null, 2)}</pre>
+      </details>
     {/if}
   </section>
 
@@ -234,8 +278,9 @@
   </section>
 </main>
 
-{#if snapshot && (snapshot.diagnostics.length > 0 || snapshot.changes.length > 0)}
-  <footer>
+{#if snapshot && findingsOpen && (snapshot.diagnostics.length > 0 || snapshot.changes.length > 0)}
+  <footer class="findings-drawer">
+    <div class="drawer-head"><strong>Validation results</strong><Button on:click={() => findingsOpen = false}>Close</Button></div>
     <section><h2>Findings <Badge tone={snapshot.diagnostics.length ? "danger" : "good"}>{snapshot.diagnostics.length}</Badge></h2>
       {#each snapshot.diagnostics as finding}<button class="finding" on:click={() => openFinding(finding)}><strong>{finding.code}</strong><span>{finding.message}</span><small>{finding.entityId ?? finding.location?.artifactPath ?? "project"}</small></button>{/each}
     </section>

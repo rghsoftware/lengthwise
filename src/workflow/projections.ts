@@ -11,5 +11,7 @@ export function buildContractContext(graph: ProjectGraph, taskId: string) {
   const verifications = criteria.flatMap(id => graph.incomingRelationships(id).filter(r => r.type === "verifies").map(r => r.from)).sort();
   const dependencies = graph.outgoingRelationships(taskId).filter(r => r.type === "depends-on").map(r => r.to).sort();
   const context = { task: taskId, requirements, criteria, verifications: [...new Set(verifications)], dependencies };
-  return { ...context, fingerprint: Bun.hash(JSON.stringify(context)).toString(16) };
+  const semanticIds=[taskId,...requirements,...criteria,...context.verifications,...dependencies];
+  const semantics=[...new Set(semanticIds)].sort().map(id=>{const entity=graph.getEntity(id); if(!entity) return {id,missing:true}; const {source:_source,body:_body,...authored}=entity; return authored;});
+  return { ...context, fingerprint: Bun.hash(JSON.stringify({context,semantics})).toString(16) };
 }

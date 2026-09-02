@@ -14,7 +14,7 @@ entities:
   - id: R-004
     type: roadmap-item
     title: Feature Workflow
-    lifecycle: active
+    lifecycle: complete
     relationships: [{ type: realized-by, to: F-003 }]
   - { id: R-005, type: roadmap-item, title: Implementer Execution, lifecycle: planned }
   - { id: R-006, type: roadmap-item, title: Parallel Workspaces, lifecycle: planned }

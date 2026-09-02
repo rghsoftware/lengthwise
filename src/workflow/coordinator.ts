@@ -4,8 +4,15 @@ import { runChecks } from "../checks/run.ts";
 import type { Diagnostic } from "../diagnostics.ts";
 import { WorkflowStateStore, type WorkflowRun } from "./state-store.ts";
 import { buildContractContext, evidenceSatisfaction } from "./projections.ts";
+import type { ProjectGraph } from "../graph/project-graph.ts";
 
 export interface WorkflowAssessment { featureId: string; repositoryValid: boolean; diagnostics: Diagnostic[]; blockingQuestions: string[]; tasks: Array<{id:string; contract?: string; contractStale?: boolean}>; specificationEligible: boolean; buildContractEligible: boolean; completionEligible: boolean; fingerprint: string }
+
+export function requiredVerificationsForFeature(graph: ProjectGraph, featureId: string): string[] {
+  const requirements = graph.outgoingRelationships(featureId).filter(r=>r.type==="addresses").map(r=>r.to);
+  const criteria = new Set(requirements.flatMap(id=>graph.outgoingRelationships(id).filter(r=>r.type==="has-acceptance-criterion").map(r=>r.to)));
+  return graph.entitiesOfType("verification").filter(v=>v.required&&graph.outgoingRelationships(v.id).some(r=>r.type==="verifies"&&criteria.has(r.to))).map(v=>v.id);
+}
 
 export class WorkflowCoordinator {
   private constructor(readonly repoRoot: string, readonly state: WorkflowStateStore) {}
@@ -16,10 +23,11 @@ export class WorkflowCoordinator {
     const feature = built.graph.getEntity(featureId); if (!feature || feature.type !== "feature") throw new Error(`Unknown feature ${featureId}`);
     const diagnostics = runChecks(built.graph,built.config); const blockingQuestions = built.graph.outgoingRelationships(featureId).filter(r=>r.type==="has-question").map(r=>built.graph.getEntity(r.to)).filter(q=>q?.type==="question"&&q.lifecycle==="open"&&q.blocking).map(q=>q!.id);
     const requirements = built.graph.outgoingRelationships(featureId).filter(r=>r.type==="addresses").map(r=>r.to);
+    const requiredVerifications = requiredVerificationsForFeature(built.graph,featureId);
     const tasks = built.graph.entitiesOfType("task").filter(t=>built.graph.outgoingRelationships(t.id).some(r=>r.type==="implements"&&requirements.includes(r.to))).map(t=>{const context=buildContractContext(built.graph,t.id);const contract=built.graph.incomingRelationships(t.id).filter(r=>r.type==="contracts").map(r=>built.graph.getEntity(r.from)).find(e=>e?.type==="build-contract"&&e.lifecycle==="accepted");return {id:t.id,contract:contract?.id,contractStale:contract?.type==="build-contract"?contract.fingerprint!==context.fingerprint:undefined};});
     const hasErrors=diagnostics.some(d=>d.severity==="error"); const specificationEligible=!hasErrors&&!blockingQuestions.length;
     const buildContractEligible=specificationEligible&&tasks.length>0&&tasks.every(t=>t.contract&&!t.contractStale);
-    const completionEligible=buildContractEligible&&tasks.every(t=>built.graph.getEntity(t.id)?.lifecycle==="done")&&built.graph.entitiesOfType("verification").filter(v=>v.required).every(v=>evidenceSatisfaction(built.graph,v.id).satisfied);
+    const completionEligible=buildContractEligible&&tasks.every(t=>built.graph.getEntity(t.id)?.lifecycle==="done")&&requiredVerifications.every(id=>evidenceSatisfaction(built.graph,id).satisfied);
     const fingerprint=Bun.hash(JSON.stringify({featureId,requirements:[...requirements].sort(),tasks})).toString(16);
     return {featureId,repositoryValid:true,diagnostics,blockingQuestions,tasks,specificationEligible,buildContractEligible,completionEligible,fingerprint};
   }

@@ -82,6 +82,7 @@ test("session exposes searchable semantic entity detail and derived state", asyn
   expect(requirement.derivedState.implementationCoverage).toBe(true);
   expect(requirement.relationships.some((edge) => edge.counterpart.id === "TASK-001" && edge.direction === "incoming")).toBe(true);
   expect(started.session.getEntity("UNKNOWN")).toBeUndefined();
+  expect("body" in requirement.authoredProperties).toBe(false);
 });
 
 test("explicit save advances successful baseline and reports lifecycle change", async () => {
@@ -256,4 +257,18 @@ test("server reports an unavailable requested port without disturbing the runnin
   expect(second.ok).toBe(false);
   if (!second.ok) expect(second.diagnostics[0]?.code).toBe("server/start-failed");
   expect((await fetch(`${first.url}/api/snapshot`)).status).toBe(200);
+});
+
+test("workflow API assesses, starts, persists, and protects feature runs", async () => {
+  const root = await fixture();
+  await Bun.write(`${root}/engineering/feature.yaml`, `lengthwise: 1\nentities:\n  - { id: F-TEST, type: feature, title: Workflow test, lifecycle: draft, significance: S }\n`);
+  const result = await startWorkbenchServer(root, { port: 0 });
+  if (!result.ok) throw new Error("fixture server did not start"); servers.push(result.server);
+  const assessment = await fetch(`${result.url}/api/workflow/F-TEST`); expect(assessment.status).toBe(200);
+  expect((await assessment.json() as any).assessment.specificationEligible).toBe(true);
+  const rejected = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:"https://untrusted.example"},body:JSON.stringify({featureId:"F-TEST"})}); expect(rejected.status).toBe(403);
+  const started = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({featureId:"F-TEST"})}); expect(started.status).toBe(201);
+  const body=await started.json() as any; expect(body.run.featureId).toBe("F-TEST");
+  const resumed=await fetch(`${result.url}/api/workflow/F-TEST`); expect((await resumed.json() as any).run.id).toBe(body.run.id);
+  result.workflow.close();
 });
