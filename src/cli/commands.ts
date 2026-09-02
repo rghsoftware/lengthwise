@@ -7,6 +7,7 @@ import type { Diagnostic } from "../diagnostics.ts";
 import type { Entity } from "../domain/entities.ts";
 import type { ProjectGraph } from "../graph/project-graph.ts";
 import { startWorkbenchServer } from "../workbench/server.ts";
+import { WorkflowCoordinator, type WorkflowGate } from "../workflow/coordinator.ts";
 
 export interface CommandResult {
   exitCode: number;
@@ -172,4 +173,29 @@ export async function cmdReady(repoRoot: string): Promise<CommandResult> {
         ? ["No tasks are ready."]
         : ready.map((entry) => `${entry.task.id} — ${entry.task.title}`),
   };
+}
+
+/** Provider-neutral workflow dogfooding surface for F-003. */
+export async function cmdWorkflow(repoRoot:string,args:string[]):Promise<CommandResult>{
+  const [action,...rest]=args; const workflow=await WorkflowCoordinator.open(repoRoot);
+  try{
+    let data:unknown;
+    switch(action){
+      case "status": {if(!rest[0])throw new Error("Usage: lw workflow status <FEATURE>");const run=workflow.state.active(rest[0]);data={assessment:await workflow.assess(rest[0]),run,history:workflow.state.history(rest[0]),events:run?workflow.state.events(run.id):[],attempts:run?workflow.state.attempts(run.id):[]};break;}
+      case "start": if(!rest[0])throw new Error("Usage: lw workflow start <FEATURE>");else data={run:await workflow.start(rest[0]),assessment:await workflow.assess(rest[0])};break;
+      case "capture": if(rest.length<4)throw new Error("Usage: lw workflow capture <FEATURE> <TITLE> <DESTINATION> <IDEA>");else data=await workflow.startFromIdea({featureId:rest[0],title:rest[1]!,destination:rest[2]!,idea:rest.slice(3).join(" ")});break;
+      case "approve": if(rest.length<3)throw new Error("Usage: lw workflow approve <RUN> <GATE> <FINGERPRINT>");else data=await workflow.approve(rest[0]!,rest[1] as WorkflowGate,rest[2]!);break;
+      case "handoff": if(rest.length<3)throw new Error("Usage: lw workflow handoff <RUN> <TASK> <IDEMPOTENCY_KEY>");else data=await workflow.handoff(rest[0]!,rest[1]!,rest[2]!);break;
+      case "return": if(rest.length<4)throw new Error("Usage: lw workflow return <RUN> <TASK> <IDEMPOTENCY_KEY> <CLAIM>");else data=await workflow.returnImplementation(rest[0]!,rest[1]!,rest.slice(3).join(" "),rest[2]!);break;
+      case "interrupt": if(!rest[0])throw new Error("Usage: lw workflow interrupt <RUN> [REASON]");else data=workflow.interrupt(rest[0],rest.slice(1).join(" ")||"Interrupted by operator");break;
+      case "resume": if(!rest[0])throw new Error("Usage: lw workflow resume <RUN>");else data=await workflow.resume(rest[0]);break;
+      case "retry": if(rest.length<2)throw new Error("Usage: lw workflow retry <RUN> <ATTEMPT>");else data=await workflow.retry(rest[0]!,rest[1]!);break;
+      case "cancel": if(!rest[0])throw new Error("Usage: lw workflow cancel <RUN> [REASON]");else data=workflow.cancel(rest[0],rest.slice(1).join(" ")||"Cancelled by operator");break;
+      case "reconcile": if(rest.length<3)throw new Error("Usage: lw workflow reconcile <RUN> <ROUTE> <REASON>");else data=await workflow.reconcile(rest[0]!,rest[1] as "specify"|"plan"|"implement"|"verify"|"reconcile"|"complete",rest.slice(2).join(" "));break;
+      case "complete": if(!rest[0])throw new Error("Usage: lw workflow complete <RUN>");else data=await workflow.complete(rest[0]);break;
+      default: throw new Error("Usage: lw workflow <status|start|capture|approve|handoff|return|interrupt|resume|retry|cancel|reconcile|complete> ...");
+    }
+    return {exitCode:0,data:{ok:true,...(typeof data==="object"&&data?data:{result:data})},lines:[JSON.stringify(data,null,2)]};
+  }catch(error){return {exitCode:1,data:{ok:false,error:(error as Error).message},lines:[(error as Error).message]};}
+  finally{workflow.close();}
 }

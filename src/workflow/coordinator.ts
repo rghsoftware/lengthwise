@@ -1,36 +1,137 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, realpath, unlink } from "node:fs/promises";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { buildProjectGraph } from "../graph/build.ts";
 import { runChecks } from "../checks/run.ts";
+import { effectiveRigor } from "../checks/rigor.ts";
 import type { Diagnostic } from "../diagnostics.ts";
-import { WorkflowStateStore, type WorkflowRun } from "./state-store.ts";
-import { buildContractContext, evidenceSatisfaction } from "./projections.ts";
+import { WorkflowStateStore, type WorkflowActivity, type WorkflowRun } from "./state-store.ts";
+import { contractStaleness, evidenceSatisfaction } from "./projections.ts";
 import type { ProjectGraph } from "../graph/project-graph.ts";
 
-export interface WorkflowAssessment { featureId: string; repositoryValid: boolean; diagnostics: Diagnostic[]; blockingQuestions: string[]; tasks: Array<{id:string; contract?: string; contractStale?: boolean}>; specificationEligible: boolean; buildContractEligible: boolean; completionEligible: boolean; fingerprint: string }
+export type WorkflowGate = "specification"|"build-contract"|"verification";
+export interface WorkflowBlocker { code:string; message:string; entityId?:string; artifactPath?:string }
+export interface WorkflowAction { id:string; kind:string; label:string; eligible:boolean; requiredInputs:string[]; expectedOutputs:string[]; target:{entityId?:string;entityType?:string;artifactPath?:string}; blockers:WorkflowBlocker[] }
+export interface GateAssessment { gate:WorkflowGate; required:boolean; eligible:boolean; approved:boolean; fingerprint:string; blockers:WorkflowBlocker[] }
+export interface WorkflowAssessment {
+  featureId:string; repositoryValid:boolean; diagnostics:Diagnostic[]; featureDiagnostics:Diagnostic[]; blockingQuestions:string[];
+  tasks:Array<{id:string;artifactPath:string;contract?:string;contractStale?:boolean;changedInputs:Array<{id:string;reason:string}>;handoffEligible:boolean}>;
+  verifications:Array<{id:string;artifactPath:string;satisfied:boolean;status:string;evidenceIds:string[];missingComplements:string[]}>;
+  gates:Record<WorkflowGate,GateAssessment>; actions:WorkflowAction[]; governingChanges:Array<{contractId:string;inputs:Array<{id:string;reason:string}>}>;
+  reconciliation:{required:boolean;reasons:WorkflowBlocker[];baselineFingerprint?:string}; specificationEligible:boolean; buildContractEligible:boolean; completionEligible:boolean; fingerprint:string;
+}
+
+function blocker(code:string,message:string,entityId?:string,artifactPath?:string):WorkflowBlocker{return {code,message,...(entityId?{entityId}:{}),...(artifactPath?{artifactPath}:{})};}
+function fingerprint(value:unknown):string{return Bun.hash(JSON.stringify(value)).toString(16);}
+function isWithin(root:string,target:string){const child=relative(root,target);return child!==""&&child!==".."&&!child.startsWith(`..${sep}`)&&!isAbsolute(child);}
 
 export function requiredVerificationsForFeature(graph: ProjectGraph, featureId: string): string[] {
   const requirements = graph.outgoingRelationships(featureId).filter(r=>r.type==="addresses").map(r=>r.to);
   const criteria = new Set(requirements.flatMap(id=>graph.outgoingRelationships(id).filter(r=>r.type==="has-acceptance-criterion").map(r=>r.to)));
-  return graph.entitiesOfType("verification").filter(v=>v.required&&graph.outgoingRelationships(v.id).some(r=>r.type==="verifies"&&criteria.has(r.to))).map(v=>v.id);
+  return graph.entitiesOfType("verification").filter(v=>v.required&&graph.outgoingRelationships(v.id).some(r=>r.type==="verifies"&&criteria.has(r.to))).map(v=>v.id).sort();
 }
 
 export class WorkflowCoordinator {
   private constructor(readonly repoRoot: string, readonly state: WorkflowStateStore) {}
   static async open(repoRoot: string) { await mkdir(`${repoRoot}/.lengthwise`, { recursive: true }); return new WorkflowCoordinator(repoRoot, new WorkflowStateStore(`${repoRoot}/.lengthwise/state.db`)); }
-  async start(featureId: string): Promise<WorkflowRun> { const assessment = await this.assess(featureId); if (!assessment.repositoryValid) throw new Error("Repository is not valid"); return this.state.start(featureId, "specify"); }
-  async assess(featureId: string): Promise<WorkflowAssessment> {
-    const built = await buildProjectGraph(this.repoRoot); if (!built.ok) return {featureId,repositoryValid:false,diagnostics:built.diagnostics,blockingQuestions:[],tasks:[],specificationEligible:false,buildContractEligible:false,completionEligible:false,fingerprint:"invalid"};
-    const feature = built.graph.getEntity(featureId); if (!feature || feature.type !== "feature") throw new Error(`Unknown feature ${featureId}`);
-    const diagnostics = runChecks(built.graph,built.config); const blockingQuestions = built.graph.outgoingRelationships(featureId).filter(r=>r.type==="has-question").map(r=>built.graph.getEntity(r.to)).filter(q=>q?.type==="question"&&q.lifecycle==="open"&&q.blocking).map(q=>q!.id);
-    const requirements = built.graph.outgoingRelationships(featureId).filter(r=>r.type==="addresses").map(r=>r.to);
-    const requiredVerifications = requiredVerificationsForFeature(built.graph,featureId);
-    const tasks = built.graph.entitiesOfType("task").filter(t=>built.graph.outgoingRelationships(t.id).some(r=>r.type==="implements"&&requirements.includes(r.to))).map(t=>{const context=buildContractContext(built.graph,t.id);const contract=built.graph.incomingRelationships(t.id).filter(r=>r.type==="contracts").map(r=>built.graph.getEntity(r.from)).find(e=>e?.type==="build-contract"&&e.lifecycle==="accepted");return {id:t.id,contract:contract?.id,contractStale:contract?.type==="build-contract"?contract.fingerprint!==context.fingerprint:undefined};});
-    const hasErrors=diagnostics.some(d=>d.severity==="error"); const specificationEligible=!hasErrors&&!blockingQuestions.length;
-    const buildContractEligible=specificationEligible&&tasks.length>0&&tasks.every(t=>t.contract&&!t.contractStale);
-    const completionEligible=buildContractEligible&&tasks.every(t=>built.graph.getEntity(t.id)?.lifecycle==="done")&&requiredVerifications.every(id=>evidenceSatisfaction(built.graph,id).satisfied);
-    const fingerprint=Bun.hash(JSON.stringify({featureId,requirements:[...requirements].sort(),tasks})).toString(16);
-    return {featureId,repositoryValid:true,diagnostics,blockingQuestions,tasks,specificationEligible,buildContractEligible,completionEligible,fingerprint};
+
+  async start(featureId: string): Promise<WorkflowRun> {
+    const assessment = await this.assess(featureId); if (!assessment.repositoryValid) throw new Error("Repository cannot currently build");
+    const run=this.state.start(featureId,"specify"); this.state.recordBaseline(run.id,assessment.fingerprint,assessment); return run;
   }
-  approve(runId:string, gate:"specification"|"build-contract"|"verification", fingerprint:string){ this.state.event(runId,`${gate}-approved`,{},fingerprint,`${runId}:${gate}:${fingerprint}`); return this.state.update(runId,gate==="build-contract"?"implementation":"planning","running"); }
+  async startFromIdea(input:{idea:string;title:string;destination:string;featureId?:string;significance?:"S"|"M"|"L"|"XL"}) {
+    if(!input.idea.trim()||!input.title.trim()) throw new Error("Idea and title are required");
+    const built=await buildProjectGraph(this.repoRoot); if(!built.ok) throw new Error("Repository cannot currently build");
+    const path=input.destination; if(isAbsolute(path)||(!path.endsWith(".yaml")&&!path.endsWith(".yml")&&!path.endsWith(".md"))) throw new Error("Feature destination must be a relative YAML or Markdown artifact path");
+    const root=await realpath(this.repoRoot); const target=resolve(root,path); if(!isWithin(root,target)) throw new Error("Feature destination escapes the selected project");
+    const included=built.config.artifacts.include.some(pattern=>new Bun.Glob(pattern).match(path)); const excluded=built.config.artifacts.exclude?.some(pattern=>new Bun.Glob(pattern).match(path));
+    if(!included||excluded) throw new Error(`Feature destination is outside configured artifact scope: ${path}`);
+    if(await Bun.file(target).exists()) throw new Error(`Feature destination already exists: ${path}`);
+    const featureId=input.featureId?.trim()||`F-${fingerprint({idea:input.idea,title:input.title}).slice(0,8).toUpperCase()}`;
+    if(built.graph.getEntity(featureId)) throw new Error(`Entity ${featureId} already exists`);
+    await mkdir(resolve(target,".."),{recursive:true});
+    const content=path.endsWith(".md") ? `---\nlengthwise: 1\nid: ${JSON.stringify(featureId)}\ntype: feature\ntitle: ${JSON.stringify(input.title)}\nlifecycle: draft\nsignificance: ${input.significance??"M"}\n---\n\n${input.idea.trim()}\n` : `lengthwise: 1\nentities:\n  - id: ${JSON.stringify(featureId)}\n    type: feature\n    title: ${JSON.stringify(input.title)}\n    lifecycle: draft\n    significance: ${input.significance??"M"}\n    body: ${JSON.stringify(input.idea.trim())}\n`;
+    await Bun.write(target,content);
+    const rebuilt=await buildProjectGraph(this.repoRoot);
+    if(!rebuilt.ok||!rebuilt.graph.getEntity(featureId)){try{await unlink(target);}catch{};throw new Error(`Created Feature artifact did not produce a valid Feature and was removed: ${rebuilt.diagnostics.map(d=>d.message).join("; ")}`);}
+    const captured=this.state.start(featureId,"capture"); const assessment=await this.assess(featureId); this.state.event(captured.id,"feature-captured",{artifactPath:path,idea:input.idea},assessment.fingerprint,`${captured.id}:capture`); this.state.recordBaseline(captured.id,assessment.fingerprint,assessment); const run=this.state.update(captured.id,"specify","running"); return {run,assessment:await this.assess(featureId),artifactPath:path};
+  }
+
+  async assess(featureId: string): Promise<WorkflowAssessment> {
+    const built = await buildProjectGraph(this.repoRoot);
+    const emptyGates=()=>Object.fromEntries((["specification","build-contract","verification"] as WorkflowGate[]).map(g=>[g,{gate:g,required:false,eligible:false,approved:false,fingerprint:"invalid",blockers:[blocker("repository-invalid","Repository cannot currently build")]}])) as Record<WorkflowGate,GateAssessment>;
+    if (!built.ok) return {featureId,repositoryValid:false,diagnostics:built.diagnostics,featureDiagnostics:built.diagnostics,blockingQuestions:[],tasks:[],verifications:[],gates:emptyGates(),actions:[],governingChanges:[],reconciliation:{required:true,reasons:[blocker("repository-invalid","Repair repository artifacts before progression")]},specificationEligible:false,buildContractEligible:false,completionEligible:false,fingerprint:"invalid"};
+    const feature = built.graph.getEntity(featureId); if (!feature || feature.type !== "feature") throw new Error(`Unknown feature ${featureId}`);
+    const graph=built.graph; const diagnostics=runChecks(graph,built.config); const requirements=graph.outgoingRelationships(featureId).filter(r=>r.type==="addresses").map(r=>r.to);
+    const criteria=requirements.flatMap(id=>graph.outgoingRelationships(id).filter(r=>r.type==="has-acceptance-criterion").map(r=>r.to));
+    const taskEntities=graph.entitiesOfType("task").filter(t=>graph.outgoingRelationships(t.id).some(r=>r.type==="implements"&&requirements.includes(r.to)));
+    const requiredVerifications=requiredVerificationsForFeature(graph,featureId); const scope=new Set([featureId,...requirements,...criteria,...taskEntities.map(t=>t.id),...requiredVerifications]);
+    const questions=graph.outgoingRelationships(featureId).filter(r=>r.type==="has-question").map(r=>graph.getEntity(r.to)).filter(q=>q?.type==="question"); questions.forEach(q=>scope.add(q!.id));
+    for(const id of [...scope]){for(const r of [...graph.incomingRelationships(id),...graph.outgoingRelationships(id)]) if(["contains","governs","contracts","includes","supports"].includes(r.type)){scope.add(r.from);scope.add(r.to);}}
+    const scopedArtifacts=new Set([...scope].map(id=>graph.getEntity(id)?.source.artifactPath).filter(Boolean));
+    const featureDiagnostics=diagnostics.filter(d=>d.entityId?scope.has(d.entityId):Boolean(d.location?.artifactPath&&scopedArtifacts.has(d.location.artifactPath)));
+    const blockingQuestions=questions.filter(q=>q!.type==="question"&&q!.lifecycle==="open"&&q!.blocking).map(q=>q!.id);
+    const tasks=taskEntities.map(t=>{const contract=graph.incomingRelationships(t.id).filter(r=>r.type==="contracts").map(r=>graph.getEntity(r.from)).find(e=>e?.type==="build-contract"&&e.lifecycle==="accepted");const stale=contract?.type==="build-contract"?contractStaleness(graph,contract.id):undefined;return {id:t.id,artifactPath:t.source.artifactPath,contract:contract?.id,contractStale:stale?.stale,changedInputs:stale?.changedInputs??[],handoffEligible:Boolean(contract&&!stale?.stale)};});
+    const verifications=requiredVerifications.map(id=>{const v=graph.getEntity(id)!;const s=evidenceSatisfaction(graph,id);return {id,artifactPath:v.source.artifactPath,satisfied:s.satisfied,status:s.status,evidenceIds:s.evidence.map(e=>e.id),missingComplements:s.missingComplements};});
+    const rigor=effectiveRigor(built.config,graph,featureId); const run=this.state.active(featureId);
+    const specificationDiagnostics=featureDiagnostics.filter(d=>!["completeness/missing-implementation","completeness/missing-verification","graph/task-dependency-cycle"].includes(d.code));
+    const common:WorkflowBlocker[]=[...specificationDiagnostics.filter(d=>d.severity==="error").map(d=>blocker(d.code,d.message,d.entityId,d.location?.artifactPath)),...blockingQuestions.map(id=>blocker("blocking-question",`Resolve blocking Question ${id} and propagate its answer`,id,graph.getEntity(id)?.source.artifactPath))];
+    for(const q of questions.filter(q=>q!.type==="question"&&q!.lifecycle==="answered"&&!graph.outgoingRelationships(q!.id).some(r=>r.type==="resolved-by")))common.push(blocker("answer-not-propagated",`${q!.id} is answered but has no resolved-by link to updated governing context`,q!.id,q!.source.artifactPath));
+    if(requirements.length===0) common.push(blocker("missing-requirements","Feature addresses no Requirement or NFR",featureId,feature.source.artifactPath));
+    const specFp=fingerprint({featureId,requirements,criteria,blockers:common}); const specApproved=Boolean(run&&this.state.hasFreshEvent(run.id,"specification-approved",specFp));
+    const planBlockers=[...common,...featureDiagnostics.filter(d=>d.severity==="error"&&!specificationDiagnostics.includes(d)).map(d=>blocker(d.code,d.message,d.entityId,d.location?.artifactPath))];
+    const plans=graph.entitiesOfType("plan").filter(p=>graph.outgoingRelationships(p.id).some(r=>r.type==="contains"&&taskEntities.some(t=>t.id===r.to)));
+    if(rigor.taskPlan==="required"&&(tasks.length===0||plans.length===0)) planBlockers.push(blocker("missing-task-plan","Effective rigor requires a Plan containing the Feature's implementation tasks",featureId,feature.source.artifactPath));
+    for(const t of tasks){if(!t.contract)planBlockers.push(blocker("missing-contract",`${t.id} needs an accepted BuildContract`,t.id,t.artifactPath));else if(t.contractStale)planBlockers.push(blocker("stale-contract",`${t.contract} is stale: ${t.changedInputs.map(i=>i.id).join(", ")}`,t.contract,graph.getEntity(t.contract)?.source.artifactPath));}
+    const contractFp=fingerprint({specFp,tasks:tasks.map(t=>({id:t.id,contract:t.contract,stale:t.contractStale,changed:t.changedInputs}))}); const contractApproved=Boolean(run&&this.state.hasFreshEvent(run.id,"build-contract-approved",contractFp));
+    const verificationBlockers=verifications.filter(v=>!v.satisfied).map(v=>blocker(`evidence-${v.status}`,`${v.id} evidence is ${v.status}${v.missingComplements.length?`; missing ${v.missingComplements.join(", ")}`:""}`,v.id,v.artifactPath));
+    const verificationFp=fingerprint({contractFp,verifications}); const verificationApproved=Boolean(run&&this.state.hasFreshEvent(run.id,"verification-approved",verificationFp));
+    const requiredGates=new Set(rigor.humanApproval.map(g=>g==="buildContract"?"build-contract":g) as WorkflowGate[]);
+    const gates:Record<WorkflowGate,GateAssessment>={
+      specification:{gate:"specification",required:requiredGates.has("specification"),eligible:common.length===0,approved:specApproved,fingerprint:specFp,blockers:common},
+      "build-contract":{gate:"build-contract",required:requiredGates.has("build-contract"),eligible:planBlockers.length===0&&(!requiredGates.has("specification")||specApproved),approved:contractApproved,fingerprint:contractFp,blockers:[...planBlockers,...(!specApproved&&requiredGates.has("specification")?[blocker("gate-order","Approve the current specification gate first")]:[])]},
+      verification:{gate:"verification",required:requiredGates.has("verification"),eligible:verificationBlockers.length===0&&tasks.every(t=>graph.getEntity(t.id)?.lifecycle==="done")&&(!requiredGates.has("build-contract")||contractApproved),approved:verificationApproved,fingerprint:verificationFp,blockers:[...verificationBlockers,...tasks.filter(t=>graph.getEntity(t.id)?.lifecycle!=="done").map(t=>blocker("task-not-done",`${t.id} lifecycle is not done`,t.id,t.artifactPath)),...(!contractApproved&&requiredGates.has("build-contract")?[blocker("gate-order","Approve the current Build Contract gate first")]:[])]}
+    };
+    const events=run?this.state.events(run.id):[]; const hasReturn=events.some(e=>e.kind==="implementation-returned"); const lastReconciled=[...events].reverse().find(e=>e.kind==="reconciliation-complete");
+    const reconciliationReasons=[...tasks.filter(t=>t.contractStale).map(t=>blocker("contract-diverged",`${t.contract} no longer matches governing inputs`,t.contract)),...verificationBlockers];
+    if(hasReturn&&!lastReconciled) reconciliationReasons.push(blocker("return-not-reconciled","Implementation return has not been reconciled with authoritative artifacts"));
+    const completionBlockers=[...common,...planBlockers.filter(b=>!common.includes(b)),...verificationBlockers,...tasks.filter(t=>graph.getEntity(t.id)?.lifecycle!=="done").map(t=>blocker("task-not-done",`${t.id} lifecycle is not done`,t.id,t.artifactPath)),...reconciliationReasons];
+    for(const gate of Object.values(gates))if(gate.required&&!gate.approved)completionBlockers.push(blocker("approval-missing",`Current ${gate.gate} approval is required`));
+    const completionEligible=completionBlockers.length===0; const overall=fingerprint({featureId,specFp,contractFp,verificationFp,completionEligible});
+    const actions=this.actionsFor({featureId,featurePath:feature.source.artifactPath,tasks,verifications,gates,completionEligible,reconciliationReasons,run});
+    return {featureId,repositoryValid:true,diagnostics,featureDiagnostics,blockingQuestions,tasks,verifications,gates,actions,governingChanges:tasks.filter(t=>t.changedInputs.length).map(t=>({contractId:t.contract!,inputs:t.changedInputs})),reconciliation:{required:reconciliationReasons.length>0,reasons:reconciliationReasons,baselineFingerprint:this.state.active(featureId)?this.state.latestBaseline(this.state.active(featureId)!.id)?.fingerprint:undefined},specificationEligible:gates.specification.eligible,buildContractEligible:gates["build-contract"].eligible,completionEligible,fingerprint:overall};
+  }
+
+  private actionsFor(input:{featureId:string;featurePath:string;tasks:WorkflowAssessment["tasks"];verifications:WorkflowAssessment["verifications"];gates:WorkflowAssessment["gates"];completionEligible:boolean;reconciliationReasons:WorkflowBlocker[];run?:WorkflowRun}):WorkflowAction[]{
+    const actions:WorkflowAction[]=[]; const add=(action:WorkflowAction)=>actions.push(action);
+    if(!input.gates.specification.approved)add({id:"review-specification",kind:"gate-review",label:"Review and approve the specification",eligible:input.gates.specification.eligible,requiredInputs:["Current Feature, requirements, criteria, decisions, Questions, and findings"],expectedOutputs:["Reviewed authoritative lifecycle saves","Specification gate event"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:input.gates.specification.blockers});
+    if(input.gates.specification.approved&&!input.gates["build-contract"].approved)for(const task of input.tasks)add({id:`author-contract:${task.id}`,kind:"author",label:task.contract?`Refresh ${task.contract}`:`Author BuildContract for ${task.id}`,eligible:true,requiredInputs:["Accepted specification","Task DAG","Verification topology","Accepted decision-authority metadata"],expectedOutputs:["Accepted machine-readable BuildContract"],target:{entityId:task.contract??task.id,entityType:"build-contract",artifactPath:task.contract?undefined:task.artifactPath.replace(/[^/]+$/,"contracts.yaml")},blockers:[]});
+    if(input.gates["build-contract"].eligible&&!input.gates["build-contract"].approved)add({id:"review-build-contract",kind:"gate-review",label:"Review and approve Build Contracts",eligible:true,requiredInputs:["Current accepted BuildContracts and governing changes"],expectedOutputs:["Build Contract gate event"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:[]});
+    if(input.gates["build-contract"].approved||!input.gates["build-contract"].required)for(const task of input.tasks)add({id:`handoff:${task.id}`,kind:"handoff",label:`Hand off ${task.id} using ${task.contract}`,eligible:task.handoffEligible,requiredInputs:["Current accepted BuildContract"],expectedOutputs:["Manual handoff record"],target:{entityId:task.contract??task.id,artifactPath:task.artifactPath},blockers:task.contractStale?[blocker("stale-contract","Refresh the BuildContract before handoff",task.contract)]:[]});
+    for(const verification of input.verifications.filter(v=>!v.satisfied))add({id:`record-evidence:${verification.id}`,kind:"author",label:`Record applicable Evidence for ${verification.id}`,eligible:true,requiredInputs:["Observed result","Outcome","Source provenance","Current applicability/revision"],expectedOutputs:["Recorded Evidence entity supporting the Verification"],target:{entityId:verification.id,entityType:"evidence",artifactPath:verification.artifactPath},blockers:[]});
+    if(input.reconciliationReasons.length)add({id:"reconcile",kind:"reconcile",label:"Reconcile implementation, contracts, Evidence, and governing artifacts",eligible:true,requiredInputs:["Implementation return claims","Current artifacts and checks","Evidence applicability","Governing changes"],expectedOutputs:["Updated authoritative artifacts or a converged reconciliation baseline"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:input.reconciliationReasons});
+    if(input.gates.verification.required&&input.gates.verification.eligible&&!input.gates.verification.approved)add({id:"review-verification",kind:"gate-review",label:"Review final verification evidence",eligible:true,requiredInputs:["Current applicable Evidence and reconciliation result"],expectedOutputs:["Verification gate event"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:[]});
+    add({id:"complete-feature",kind:"author",label:"Save Feature lifecycle as complete",eligible:input.completionEligible,requiredInputs:["All deterministic completion obligations and required approvals"],expectedOutputs:["Feature lifecycle complete in its authoritative artifact","Terminal workflow run"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:input.completionEligible?[]:[blocker("completion-ineligible","Resolve the listed workflow blockers first")]});
+    return actions;
+  }
+
+  async approve(runId:string, gate:WorkflowGate, reviewedFingerprint:string, lifecycleEffects:Array<{entityId:string;from:string;to:string}>=[]) {
+    const run=this.requireRun(runId); const assessment=await this.assess(run.featureId); const current=assessment.gates[gate];
+    if(current.approved)return run;
+    const allowed:Record<WorkflowGate,WorkflowActivity[]>={specification:["specify","reconcile"],"build-contract":["plan","reconcile"],verification:["verify","reconcile"]};if(!allowed[gate].includes(run.activity))throw new Error(`Cannot approve ${gate} gate during ${run.activity} activity`);
+    if(current.fingerprint!==reviewedFingerprint)throw new Error(`Reviewed ${gate} context is stale; reload the current gate assessment`); if(!current.eligible)throw new Error(`${gate} gate is ineligible: ${current.blockers.map(b=>b.message).join("; ")}`);
+    const built=await buildProjectGraph(this.repoRoot); if(!built.ok)throw new Error("Repository cannot currently build");
+    for(const effect of lifecycleEffects){const entity=built.graph.getEntity(effect.entityId);if(!entity)throw new Error(`Reviewed lifecycle effect references unknown entity ${effect.entityId}`);if(entity.lifecycle!==effect.to)throw new Error(`Apply and save reviewed lifecycle effect ${effect.entityId}: ${effect.from} -> ${effect.to} before approval`);}
+    const order:Record<WorkflowGate,WorkflowActivity>={specification:"plan","build-contract":"implement",verification:"reconcile"};
+    this.state.event(runId,`${gate}-approved`,{lifecycleEffects},reviewedFingerprint,`${runId}:${gate}:${reviewedFingerprint}`); return this.state.update(runId,order[gate],gate==="build-contract"?"running":"running");
+  }
+  async handoff(runId:string,taskId:string,idempotencyKey:string){const run=this.requireRun(runId);if(run.activity!=="implement")throw new Error(`Cannot hand off implementation during ${run.activity} activity`);const a=await this.assess(run.featureId);const task=a.tasks.find(t=>t.id===taskId);if(!task?.handoffEligible||(a.gates["build-contract"].required&&!a.gates["build-contract"].approved))throw new Error(`${taskId} is not eligible for handoff`);const attempt=this.state.beginAttempt(runId,`handoff:${taskId}`,idempotencyKey,a.fingerprint);if(attempt.state!=="running")return attempt;this.state.event(runId,"implementation-handed-off",{taskId,contractId:task.contract},a.fingerprint,`${runId}:handoff:${taskId}:${idempotencyKey}`);this.state.wait(runId,"implementation",taskId);this.state.update(runId,"implement","waiting-implementation");return this.state.finishAttempt(attempt.id,"succeeded",{taskId,contractId:task.contract});}
+  async returnImplementation(runId:string,taskId:string,claim:string,idempotencyKey:string){const run=this.requireRun(runId);if(!this.state.events(runId).some(e=>e.kind==="implementation-handed-off"&&(e.payload as {taskId?:string}).taskId===taskId))throw new Error(`${taskId} has not been handed off`);const a=await this.assess(run.featureId);const attempt=this.state.beginAttempt(runId,`implementation-return:${taskId}`,idempotencyKey,a.fingerprint);if(attempt.state!=="running")return attempt;this.state.event(runId,"implementation-returned",{taskId,claim},a.fingerprint,`${runId}:return:${taskId}:${idempotencyKey}`);this.state.resolveWaits(runId,"implementation");this.state.update(runId,"verify","running");return this.state.finishAttempt(attempt.id,"succeeded",{taskId,claim});}
+  interrupt(runId:string,reason:string){const run=this.requireRun(runId);for(const attempt of this.state.attempts(runId).filter(a=>a.state==="running"))this.state.finishAttempt(attempt.id,"interrupted",{reason});this.state.event(runId,"run-interrupted",{reason});return this.state.update(runId,run.activity,"interrupted");}
+  async resume(runId:string){const run=this.requireRun(runId);const a=await this.assess(run.featureId);const interrupted=this.state.attempts(runId).filter(x=>x.state==="interrupted");const classifications=interrupted.map(x=>({attemptId:x.id,classification:x.repositoryFingerprint===a.fingerprint?"no-write-observed":"repository-changed-reconciliation-required"}));if(classifications.some(x=>x.classification.includes("reconciliation")))this.state.update(runId,"reconcile","running");else this.state.update(runId,run.activity,"running");this.state.event(runId,"run-resumed",{classifications},a.fingerprint);return {run:this.state.get(runId)!,assessment:await this.assess(run.featureId),classifications};}
+  async retry(runId:string,attemptId:string){const run=this.requireRun(runId);const attempt=this.state.attempts(runId).find(a=>a.id===attemptId);if(!attempt)throw new Error(`Unknown attempt ${attemptId} for run ${runId}`);if(attempt.state==="succeeded")return attempt;const assessment=await this.assess(run.featureId);if(attempt.repositoryFingerprint!==assessment.fingerprint){this.state.update(runId,"reconcile","running");throw new Error("Repository changed since the interrupted action; reconcile before retrying");}const retried=this.state.retryAttempt(attemptId,assessment.fingerprint);this.state.event(runId,"action-retried",{attemptId,actionId:attempt.actionId},assessment.fingerprint,`${runId}:retry:${attemptId}:${assessment.fingerprint}`);return retried;}
+  cancel(runId:string,reason:string){const run=this.requireRun(runId);this.state.event(runId,"run-cancelled",{reason});return this.state.update(runId,run.activity,"cancelled");}
+  async reconcile(runId:string,route:Exclude<WorkflowActivity,"capture"|"complete">|"complete",reason:string,targetId?:string){const run=this.requireRun(runId);const a=await this.assess(run.featureId);if(route==="complete"&&a.reconciliation.reasons.filter(r=>r.code!=="return-not-reconciled").length)throw new Error(`Reconciliation has not converged: ${a.reconciliation.reasons.map(r=>r.message).join("; ")}`);this.state.event(runId,route==="complete"?"reconciliation-complete":"reconciliation-directed",{route,reason,targetId},a.fingerprint);if(route==="complete")this.state.recordBaseline(runId,a.fingerprint,a);return this.state.update(runId,route==="complete"?"complete":route,"running");}
+  async complete(runId:string){const run=this.requireRun(runId);const a=await this.assess(run.featureId);if(!a.completionEligible)throw new Error("Feature completion is not eligible");const built=await buildProjectGraph(this.repoRoot);if(!built.ok||built.graph.getEntity(run.featureId)?.lifecycle!=="complete")throw new Error("Save the Feature lifecycle as complete in its authoritative artifact before completing the run");this.state.event(runId,"workflow-completed",{},a.fingerprint,`${runId}:complete:${a.fingerprint}`);return this.state.update(runId,"complete","complete");}
+  private requireRun(runId:string){const run=this.state.get(runId);if(!run)throw new Error(`Unknown workflow run ${runId}`);if(["cancelled","complete"].includes(run.state))throw new Error(`Workflow run ${runId} is terminal`);return run;}
   close(){this.state.close();}
 }

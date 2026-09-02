@@ -56,6 +56,7 @@ export interface AcceptanceCriterionEntity
 export interface DecisionEntity extends EntityBase<"decision", DecisionLifecycle> {
   title: string & tags.MinLength<1>;
   decision: string & tags.MinLength<1>;
+  authority?: "LOCKED" | "BOUNDED" | "DELEGATED";
 }
 
 export interface DocumentEntity extends EntityBase<"document", DocumentLifecycle> {
@@ -86,6 +87,7 @@ export interface VerificationEntity extends EntityBase<"verification", Verificat
    */
   method: string & tags.MinLength<1>;
   required: boolean;
+  evidenceRequirements?: string[];
 }
 
 export interface RoadmapItemEntity extends EntityBase<"roadmap-item", RoadmapItemLifecycle> {
@@ -97,10 +99,13 @@ export interface QuestionEntity extends EntityBase<"question", QuestionLifecycle
 export interface EvidenceEntity extends EntityBase<"evidence", EvidenceLifecycle> {
   title: string & tags.MinLength<1>; outcome: "passed" | "failed" | "inconclusive";
   result: string & tags.MinLength<1>; applicability: string & tags.MinLength<1>;
+  contextFingerprint?: string;
+  kind?: string;
 }
 export interface BuildContractEntity extends EntityBase<"build-contract", BuildContractLifecycle> {
   title: string & tags.MinLength<1>; fingerprint: string & tags.MinLength<1>;
   locked: string[]; bounded: string[]; delegated: string[];
+  inputFingerprints?: Record<string, string>;
 }
 
 export type Entity =

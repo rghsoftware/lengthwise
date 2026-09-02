@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { cmdCheck, cmdIndex, cmdReady, cmdServe, cmdShow, cmdTrace } from "./commands.ts";
+import { cmdCheck, cmdIndex, cmdReady, cmdServe, cmdShow, cmdTrace, cmdWorkflow } from "./commands.ts";
 import type { CommandResult } from "./commands.ts";
 
 const USAGE = `Usage: lw <command> [args]
@@ -11,6 +11,7 @@ Commands:
   trace <ID>     Show an entity's traceability relationships
   ready          List tasks whose dependencies are satisfied
   serve          Start the local Minimal Workbench
+  workflow ...   Start, inspect, approve, hand off, reconcile, or complete workflow runs
 
 Flags:
   --json         Print machine-readable JSON instead of formatted text
@@ -33,6 +34,8 @@ export async function runCli(argv: string[], repoRoot: string): Promise<CommandR
       return cmdReady(repoRoot);
     case "serve":
       return cmdServe(repoRoot);
+    case "workflow":
+      return cmdWorkflow(repoRoot, rest);
     default:
       return { exitCode: 1, lines: [USAGE], data: { ok: false, error: "unknown command" } };
   }

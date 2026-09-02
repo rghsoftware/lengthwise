@@ -265,7 +265,9 @@ test("workflow API assesses, starts, persists, and protects feature runs", async
   const result = await startWorkbenchServer(root, { port: 0 });
   if (!result.ok) throw new Error("fixture server did not start"); servers.push(result.server);
   const assessment = await fetch(`${result.url}/api/workflow/F-TEST`); expect(assessment.status).toBe(200);
-  expect((await assessment.json() as any).assessment.specificationEligible).toBe(true);
+  const assessed=(await assessment.json() as any).assessment;
+  expect(assessed.specificationEligible).toBe(false);
+  expect(assessed.actions.some((action:any)=>action.target.entityId==="F-TEST")).toBe(true);
   const rejected = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:"https://untrusted.example"},body:JSON.stringify({featureId:"F-TEST"})}); expect(rejected.status).toBe(403);
   const started = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({featureId:"F-TEST"})}); expect(started.status).toBe(201);
   const body=await started.json() as any; expect(body.run.featureId).toBe("F-TEST");

@@ -34,6 +34,10 @@ dl { display: grid; grid-template-columns: 7rem 1fr; margin: 1rem 0; font-size: 
 pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: .75rem; border-radius: .75rem; border: 1px solid #1f2937; background: #070b13; color: #d1d5db; font-size: .75rem; }
 .relationships { display: grid; gap: .4rem; } .relationships button { display: grid; grid-template-columns: 1fr auto; gap: .2rem .8rem; text-align: left; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: .5rem; padding: .55rem; cursor: pointer; }
 .workflow-card { display: grid; gap: .5rem; padding: .75rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--panel-2); } .workflow-card > div { display: flex; align-items: center; justify-content: space-between; } .workflow-card p { margin: 0; font-size: .78rem; }
+.workflow-card h3 { margin: 1rem 0 .4rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.workflow-card .workflow-row { display: flex; gap: .5rem; align-items: center; }
+.workflow-row > button:first-child, .workflow-link { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; padding: .55rem; border: 1px solid var(--border); border-radius: .35rem; background: transparent; color: inherit; text-align: left; }
+.workflow-link { width: 100%; margin: .15rem 0; } .workflow-link span, .workflow-link small, .workflow-row small { color: var(--muted); }
 .relationships button span, .relationships small { color: var(--muted); font-size: .72rem; } .relationships small { grid-column: 2; }
 .authored-metadata { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; } .authored-metadata summary { cursor: pointer; color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; } .authored-metadata pre { margin-bottom: 0; }
 .source { display: grid; grid-template-rows: auto 1fr; } .source-head { padding: .75rem 1rem; border-bottom: 1px solid var(--border); }

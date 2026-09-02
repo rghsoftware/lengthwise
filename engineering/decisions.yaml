@@ -53,6 +53,7 @@ entities:
     type: decision
     title: Questions are durable engineering entities
     lifecycle: accepted
+    authority: LOCKED
     decision: "Represent unresolved engineering questions as first-class Question entities with explicit blocking semantics; an answer becomes governing only after propagation into the appropriate authoritative engineering entity."
     relationships:
       - { type: governs, to: F-003 }
@@ -61,6 +62,7 @@ entities:
     type: decision
     title: Verification results are Evidence entities
     lifecycle: accepted
+    authority: LOCKED
     decision: "Represent verification results as first-class Evidence entities with stable identity, outcome, applicability context, provenance, and many-to-many support for Verification definitions."
     relationships:
       - { type: governs, to: F-003 }
@@ -69,6 +71,7 @@ entities:
     type: decision
     title: Accepted Build Contracts are authoritative handoff entities
     lifecycle: accepted
+    authority: LOCKED
     decision: "Generate Build Contract candidates deterministically from the Project Graph and persist accepted contracts as first-class authoritative BuildContract entities with sufficient context identity to derive staleness."
     relationships:
       - { type: governs, to: F-003 }
@@ -78,6 +81,7 @@ entities:
     type: decision
     title: Workflow approvals are operational events
     lifecycle: accepted
+    authority: LOCKED
     decision: "Store gate approvals as operational events whose durable engineering effect is an authoritative lifecycle transition or artifact change; F-003 adds no Approval entity."
     relationships:
       - { type: governs, to: F-003 }
@@ -87,6 +91,7 @@ entities:
     type: decision
     title: Workflow runtime uses a separate operational SQLite store
     lifecycle: accepted
+    authority: LOCKED
     decision: "Store resumable workflow runtime and history in .lengthwise/state.db, separate from the disposable .lengthwise/index.db and authoritative Git artifacts."
     relationships:
       - { type: governs, to: F-003 }
@@ -96,6 +101,7 @@ entities:
     type: decision
     title: Completeness remains lifecycle and rigor aware
     lifecycle: accepted
+    authority: LOCKED
     decision: "Structural checks always apply; completeness obligations derive from entity type, lifecycle, and effective rigor rather than workflow phase."
     relationships:
       - { type: governs, to: F-003 }
@@ -104,6 +110,7 @@ entities:
     type: decision
     title: Basic rigor inheritance follows graph parentage
     lifecycle: accepted
+    authority: LOCKED
     decision: "Effective rigor resolves from the nearest explicit override, otherwise the parent scope, otherwise project default; F-003 adds no release-phase or subsystem conditional policy rules."
     relationships:
       - { type: governs, to: F-003 }
@@ -113,6 +120,7 @@ entities:
     type: decision
     title: One active workflow run per feature
     lifecycle: accepted
+    authority: LOCKED
     decision: "Permit at most one non-terminal workflow run for a feature while retaining terminal run history operationally."
     relationships:
       - { type: governs, to: F-003 }
@@ -121,6 +129,7 @@ entities:
     type: decision
     title: Completion approval is rigor controlled
     lifecycle: accepted
+    authority: LOCKED
     decision: "Derive completion eligibility deterministically and require a final human verification or completion gate only when effective rigor policy requires it."
     relationships:
       - { type: governs, to: F-003 }

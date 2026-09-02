@@ -11,7 +11,10 @@
   type Detail = { entity: Summary & Record<string, unknown>; label: string; authoredProperties: Record<string, unknown>; derivedState: Record<string, unknown>; relationships: Array<{ direction: string; type: string; label: string; provenance: string; counterpart: Summary | { id: string; missing: true } }> };
   type Artifact = { path: string; language: "markdown" | "yaml"; content: string; version: string };
   type Snapshot = { revision: number; repositoryValid: boolean; retainedGraph: boolean; entities: Summary[]; diagnostics: Diagnostic[]; changes: Array<Record<string, unknown> & { kind: string }> };
-  type WorkflowAssessment = { featureId:string; repositoryValid:boolean; blockingQuestions:string[]; tasks:Array<{id:string;contract?:string;contractStale?:boolean}>; specificationEligible:boolean; buildContractEligible:boolean; completionEligible:boolean; fingerprint:string };
+  type Blocker={code:string;message:string;entityId?:string;artifactPath?:string};
+  type WorkflowAction={id:string;kind:string;label:string;eligible:boolean;requiredInputs:string[];expectedOutputs:string[];target:{entityId?:string;artifactPath?:string};blockers:Blocker[]};
+  type Gate={gate:"specification"|"build-contract"|"verification";required:boolean;eligible:boolean;approved:boolean;fingerprint:string;blockers:Blocker[]};
+  type WorkflowAssessment = { featureId:string; repositoryValid:boolean; blockingQuestions:string[]; tasks:Array<{id:string;contract?:string;contractStale?:boolean;changedInputs:Blocker[]}>;verifications:Array<{id:string;satisfied:boolean;status:string;artifactPath:string}>;gates:Record<string,Gate>;actions:WorkflowAction[];governingChanges:Array<{contractId:string;inputs:Array<{id:string;reason:string}>}>;reconciliation:{required:boolean;reasons:Blocker[]}; specificationEligible:boolean; buildContractEligible:boolean; completionEligible:boolean; fingerprint:string };
   type WorkflowRun = { id:string; activity:string; state:string };
 
   class ApiError extends Error {
@@ -114,6 +117,10 @@
     workflowRun=body.run; workflow=body.assessment; notice=`Workflow started for ${detail.entity.id}.`;
   }
 
+  async function refreshWorkflow(){if(!detail||detail.entity.type!=="feature")return;const body=await api<{assessment:WorkflowAssessment;run?:WorkflowRun}>(`/api/workflow/${encodeURIComponent(detail.entity.id)}`);workflow=body.assessment;workflowRun=body.run;}
+  async function approveGate(gate:Gate){if(!workflowRun)return;try{await api("/api/workflow/gate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId:workflowRun.id,gate:gate.gate,fingerprint:gate.fingerprint})});await refreshWorkflow();notice=`${gate.gate} gate approved against the reviewed repository state.`;}catch(cause){error=(cause as Error).message;}}
+  async function openWorkflowTarget(action:WorkflowAction){if(action.target.entityId&&snapshot?.entities.some(e=>e.id===action.target.entityId))await selectEntity(action.target.entityId);else if(action.target.artifactPath)await loadArtifact(action.target.artifactPath);}
+
   async function save() {
     if (!artifact || !dirty || saving) return;
     saving = true;
@@ -140,6 +147,7 @@
         const currentId = detail.entity.id;
         const current = await fetch(`/api/entities/${encodeURIComponent(currentId)}`);
         if (current.ok) detail = (await current.json()).entity;
+        if(detail?.entity.type==="feature")await refreshWorkflow();
       }
     } catch (cause) {
       error = (cause as Error).message;
@@ -253,6 +261,17 @@
           {#if workflow.blockingQuestions.length}<p>Blocking questions: {workflow.blockingQuestions.join(", ")}</p>{/if}
           {#if workflow.tasks.some(task => !task.contract || task.contractStale)}<p>{workflow.tasks.filter(task => !task.contract || task.contractStale).length} task contract(s) missing or stale.</p>{/if}
           {#if !workflowRun}<Button on:click={startWorkflow}>Start workflow</Button>{/if}
+          {#if workflowRun}
+            <h3>Pending gates</h3>
+            {#each Object.values(workflow.gates) as gate}
+              <div class="workflow-row"><button on:click={() => gate.blockers[0]?.entityId && selectEntity(gate.blockers[0].entityId)}><strong>{gate.gate}</strong><small>{gate.approved ? "approved for current fingerprint" : gate.eligible ? "ready for review" : gate.blockers.map(b=>b.message).join(" · ")}</small></button>{#if !gate.approved}<Button disabled={!gate.eligible} on:click={() => approveGate(gate)}>Approve</Button>{/if}</div>
+            {/each}
+          {/if}
+          <h3>Verification obligations</h3>
+          {#each workflow.verifications as verification}<button class="workflow-link" on:click={() => selectEntity(verification.id)}><strong>{verification.id}</strong><span>{verification.status}</span></button>{/each}
+          {#if workflow.governingChanges.length}<h3>Governing changes</h3>{#each workflow.governingChanges as change}<p><strong>{change.contractId}</strong>: {change.inputs.map(i=>`${i.id} ${i.reason}`).join(", ")}</p>{/each}{/if}
+          <h3>Next engineering actions</h3>
+          {#each workflow.actions as action}<button class="workflow-link" disabled={!action.eligible} on:click={() => openWorkflowTarget(action)}><strong>{action.label}</strong><span>{action.target.entityId ?? action.target.artifactPath ?? action.kind}</span><small>{action.eligible ? `Produces: ${action.expectedOutputs.join("; ")}` : action.blockers.map(b=>b.message).join(" · ")}</small></button>{/each}
         </div>
       {/if}
       <h2>Relationships</h2>
