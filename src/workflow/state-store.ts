@@ -9,7 +9,7 @@ export interface WorkflowEvent { id: string; runId: string; kind: string; contex
 export interface WorkflowAttempt { id: string; runId: string; actionId: string; idempotencyKey: string; state: AttemptState; repositoryFingerprint?: string; result?: unknown; createdAt: string; updatedAt: string }
 export interface ReconciliationBaseline { runId: string; fingerprint: string; assessment: unknown; createdAt: string }
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 const ACTIVITY_TRANSITIONS:Record<WorkflowActivity,readonly WorkflowActivity[]>={capture:["specify"],specify:["plan","reconcile"],plan:["specify","implement","reconcile"],implement:["verify","reconcile"],verify:["implement","reconcile"],reconcile:["specify","plan","implement","verify","complete"],complete:[]};
 function assertActivity(value: string): asserts value is WorkflowActivity {
   if (!(WORKFLOW_ACTIVITIES as readonly string[]).includes(value)) throw new Error(`Unsupported workflow activity ${JSON.stringify(value)}`);
@@ -41,6 +41,13 @@ export class WorkflowStateStore {
           this.db.exec("UPDATE workflow_runs SET activity='plan' WHERE activity='planning'; UPDATE workflow_runs SET activity='implement' WHERE activity='implementation';");
           next = 2;
         }
+        if(next===2){
+          this.db.exec(`CREATE TABLE workflow_attempts_v3(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, action_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, state TEXT NOT NULL, repository_fingerprint TEXT, result TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(run_id,action_id,idempotency_key));
+            INSERT INTO workflow_attempts_v3 SELECT * FROM workflow_attempts;
+            DROP TABLE workflow_attempts;
+            ALTER TABLE workflow_attempts_v3 RENAME TO workflow_attempts;`);
+          next=3;
+        }
         this.db.query("UPDATE schema_version SET version=?").run(next);
       })();
     } catch (error) { throw new Error(`Workflow state migration from schema ${version} failed and was rolled back: ${(error as Error).message}`); }
@@ -59,14 +66,15 @@ export class WorkflowStateStore {
     this.db.query("UPDATE workflow_runs SET activity=?,state=?,updated_at=? WHERE id=?").run(activity, state, new Date().toISOString(), id); return this.get(id)!;
   }
   history(featureId: string): WorkflowRun[] { return this.db.query("SELECT id,feature_id featureId,activity,state,created_at createdAt,updated_at updatedAt FROM workflow_runs WHERE feature_id=? ORDER BY created_at,id").all(featureId) as WorkflowRun[]; }
+  latest(featureId:string):WorkflowRun|undefined{return (this.db.query("SELECT id,feature_id featureId,activity,state,created_at createdAt,updated_at updatedAt FROM workflow_runs WHERE feature_id=? ORDER BY created_at DESC,id DESC LIMIT 1").get(featureId) as WorkflowRun|null)??undefined;}
   event(runId: string, kind: string, payload: unknown, fingerprint?: string, id: string = crypto.randomUUID()): WorkflowEvent {
     if (!this.get(runId)) throw new Error(`Unknown workflow run ${runId}`); const now = new Date().toISOString(); this.db.query("INSERT OR IGNORE INTO workflow_events VALUES (?,?,?,?,?,?)").run(id, runId, kind, fingerprint ?? null, JSON.stringify(payload), now); return this.events(runId).find(event => event.id === id)!;
   }
   events(runId: string): WorkflowEvent[] { return (this.db.query("SELECT id,run_id runId,kind,context_fingerprint contextFingerprint,payload,created_at createdAt FROM workflow_events WHERE run_id=? ORDER BY created_at,id").all(runId) as Array<Omit<WorkflowEvent,"payload"> & {payload:string}>).map(e => ({...e, payload: JSON.parse(e.payload)})); }
   hasFreshEvent(runId: string, kind: string, fingerprint: string): boolean { return this.events(runId).some(event => event.kind === kind && event.contextFingerprint === fingerprint); }
   beginAttempt(runId: string, actionId: string, idempotencyKey: string, repositoryFingerprint?: string): WorkflowAttempt {
-    const existing = this.attemptByKey(idempotencyKey); if (existing) return existing; const now = new Date().toISOString(); const id = crypto.randomUUID();
-    this.db.query("INSERT INTO workflow_attempts VALUES (?,?,?,?,?,?,?,?,?)").run(id, runId, actionId, idempotencyKey, "running", repositoryFingerprint ?? null, null, now, now); return this.attemptByKey(idempotencyKey)!;
+    if(!this.get(runId))throw new Error(`Unknown workflow run ${runId}`);const existing = this.attemptByKey(runId,actionId,idempotencyKey); if (existing) return existing; const now = new Date().toISOString(); const id = crypto.randomUUID();
+    this.db.query("INSERT INTO workflow_attempts VALUES (?,?,?,?,?,?,?,?,?)").run(id, runId, actionId, idempotencyKey, "running", repositoryFingerprint ?? null, null, now, now); return this.attemptByKey(runId,actionId,idempotencyKey)!;
   }
   finishAttempt(id: string, state: Exclude<AttemptState,"running">, result?: unknown): WorkflowAttempt {
     this.db.query("UPDATE workflow_attempts SET state=?,result=?,updated_at=? WHERE id=?").run(state, result === undefined ? null : JSON.stringify(result), new Date().toISOString(), id);
@@ -78,13 +86,14 @@ export class WorkflowStateStore {
     this.db.query("UPDATE workflow_attempts SET state='running',repository_fingerprint=?,result=NULL,updated_at=? WHERE id=?").run(repositoryFingerprint,new Date().toISOString(),id); return this.attemptsForId(id)!;
   }
   private attemptsForId(id:string):WorkflowAttempt|undefined { const row=this.db.query("SELECT id,run_id runId,action_id actionId,idempotency_key idempotencyKey,state,repository_fingerprint repositoryFingerprint,result,created_at createdAt,updated_at updatedAt FROM workflow_attempts WHERE id=?").get(id) as (Omit<WorkflowAttempt,"result">&{result:string|null})|null; return row?{...row,result:row.result?JSON.parse(row.result):undefined}:undefined; }
-  attemptByKey(key: string): WorkflowAttempt | undefined {
-    const attempt = this.db.query("SELECT id,run_id runId,action_id actionId,idempotency_key idempotencyKey,state,repository_fingerprint repositoryFingerprint,result,created_at createdAt,updated_at updatedAt FROM workflow_attempts WHERE idempotency_key=?").get(key) as (Omit<WorkflowAttempt,"result"> & {result:string|null}) | null;
+  attemptByKey(runId:string,actionId:string,key: string): WorkflowAttempt | undefined {
+    const attempt = this.db.query("SELECT id,run_id runId,action_id actionId,idempotency_key idempotencyKey,state,repository_fingerprint repositoryFingerprint,result,created_at createdAt,updated_at updatedAt FROM workflow_attempts WHERE run_id=? AND action_id=? AND idempotency_key=?").get(runId,actionId,key) as (Omit<WorkflowAttempt,"result"> & {result:string|null}) | null;
     return attempt ? {...attempt, result:attempt.result ? JSON.parse(attempt.result) : undefined} : undefined;
   }
   attempts(runId: string): WorkflowAttempt[] { return (this.db.query("SELECT id,run_id runId,action_id actionId,idempotency_key idempotencyKey,state,repository_fingerprint repositoryFingerprint,result,created_at createdAt,updated_at updatedAt FROM workflow_attempts WHERE run_id=? ORDER BY created_at,id").all(runId) as Array<Omit<WorkflowAttempt,"result"> & {result:string|null}>).map(a=>({...a,result:a.result?JSON.parse(a.result):undefined})); }
   wait(runId:string, kind:string, targetId?:string): void { this.db.query("INSERT INTO workflow_waits VALUES (?,?,?,?,?,?,NULL)").run(crypto.randomUUID(),runId,kind,targetId??null,"waiting",new Date().toISOString()); }
-  resolveWaits(runId:string, kind:string): void { this.db.query("UPDATE workflow_waits SET state='resolved',resolved_at=? WHERE run_id=? AND kind=? AND state='waiting'").run(new Date().toISOString(),runId,kind); }
+  resolveWaits(runId:string, kind:string,targetId?:string): void { this.db.query("UPDATE workflow_waits SET state='resolved',resolved_at=? WHERE run_id=? AND kind=? AND target_id IS ? AND state='waiting'").run(new Date().toISOString(),runId,kind,targetId??null); }
+  waiting(runId:string,kind:string):Array<{targetId?:string}>{return (this.db.query("SELECT target_id targetId FROM workflow_waits WHERE run_id=? AND kind=? AND state='waiting' ORDER BY created_at,id").all(runId,kind) as Array<{targetId:string|null}>).map(r=>({targetId:r.targetId??undefined}));}
   recordBaseline(runId:string, fingerprint:string, assessment:unknown): void { this.db.query("INSERT INTO reconciliation_baselines(run_id,fingerprint,assessment,created_at) VALUES (?,?,?,?)").run(runId,fingerprint,JSON.stringify(assessment),new Date().toISOString()); }
   latestBaseline(runId:string): ReconciliationBaseline | undefined { const r=this.db.query("SELECT run_id runId,fingerprint,assessment,created_at createdAt FROM reconciliation_baselines WHERE run_id=? ORDER BY id DESC LIMIT 1").get(runId) as (Omit<ReconciliationBaseline,"assessment">&{assessment:string})|null; return r?{...r,assessment:JSON.parse(r.assessment)}:undefined; }
   close() { this.db.close(); }

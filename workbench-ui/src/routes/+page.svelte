@@ -37,6 +37,7 @@
   let editorTarget: { line: number; revision: number } | undefined;
   let workflow: WorkflowAssessment | undefined;
   let workflowRun: WorkflowRun | undefined;
+  let workflowRunHistorical = false;
   let findingsOpen = true;
   $: dirty = Boolean(artifact && editorValue !== artifact.content);
   $: types = [...new Set((snapshot?.entities ?? []).map((entity) => entity.type))].sort();
@@ -101,10 +102,10 @@
     notice = "";
     const body = await api<{ entity: Detail }>(`/api/entities/${encodeURIComponent(id)}`);
     detail = body.entity;
-    workflow = undefined; workflowRun = undefined;
+    workflow = undefined; workflowRun = undefined;workflowRunHistorical=false;
     if (detail.entity.type === "feature") {
-      const workflowBody = await api<{assessment:WorkflowAssessment;run?:WorkflowRun}>(`/api/workflow/${encodeURIComponent(id)}`);
-      workflow = workflowBody.assessment; workflowRun = workflowBody.run;
+      const workflowBody = await api<{assessment:WorkflowAssessment;run?:WorkflowRun;runHistorical?:boolean}>(`/api/workflow/${encodeURIComponent(id)}`);
+      workflow = workflowBody.assessment; workflowRun = workflowBody.run;workflowRunHistorical=Boolean(workflowBody.runHistorical);
     }
     const source = detail.entity.source as Summary["source"];
     await loadArtifact(source.artifactPath, line ?? source.line, true);
@@ -114,10 +115,10 @@
   async function startWorkflow() {
     if (!detail || detail.entity.type !== "feature") return;
     const body = await api<{run:WorkflowRun;assessment:WorkflowAssessment}>("/api/workflow", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({featureId:detail.entity.id})});
-    workflowRun=body.run; workflow=body.assessment; notice=`Workflow started for ${detail.entity.id}.`;
+    workflowRun=body.run; workflow=body.assessment;workflowRunHistorical=false; notice=`Workflow started for ${detail.entity.id}.`;
   }
 
-  async function refreshWorkflow(){if(!detail||detail.entity.type!=="feature")return;const body=await api<{assessment:WorkflowAssessment;run?:WorkflowRun}>(`/api/workflow/${encodeURIComponent(detail.entity.id)}`);workflow=body.assessment;workflowRun=body.run;}
+  async function refreshWorkflow(){if(!detail||detail.entity.type!=="feature")return;const body=await api<{assessment:WorkflowAssessment;run?:WorkflowRun;runHistorical?:boolean}>(`/api/workflow/${encodeURIComponent(detail.entity.id)}`);workflow=body.assessment;workflowRun=body.run;workflowRunHistorical=Boolean(body.runHistorical);}
   async function approveGate(gate:Gate){if(!workflowRun)return;try{await api("/api/workflow/gate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId:workflowRun.id,gate:gate.gate,fingerprint:gate.fingerprint})});await refreshWorkflow();notice=`${gate.gate} gate approved against the reviewed repository state.`;}catch(cause){error=(cause as Error).message;}}
   async function openWorkflowTarget(action:WorkflowAction){if(action.target.entityId&&snapshot?.entities.some(e=>e.id===action.target.entityId))await selectEntity(action.target.entityId);else if(action.target.artifactPath)await loadArtifact(action.target.artifactPath);}
 
@@ -256,15 +257,15 @@
       {#if workflow}
         <h2>Feature workflow</h2>
         <div class="workflow-card">
-          <div><strong>{workflowRun?.activity ?? "No active run"}</strong><Badge tone={workflowRun ? "good" : "neutral"}>{workflowRun?.state ?? "idle"}</Badge></div>
+          <div><strong>{workflowRun ? `${workflowRunHistorical ? "Historical " : ""}${workflowRun.activity}` : "No workflow run"}</strong><Badge tone={workflowRunHistorical ? "neutral" : workflowRun ? "good" : "neutral"}>{workflowRun?.state ?? "idle"}</Badge></div>
           <p>Specification {workflow.specificationEligible ? "eligible" : "blocked"} · Contract {workflow.buildContractEligible ? "eligible" : "blocked"} · Completion {workflow.completionEligible ? "eligible" : "blocked"}</p>
           {#if workflow.blockingQuestions.length}<p>Blocking questions: {workflow.blockingQuestions.join(", ")}</p>{/if}
           {#if workflow.tasks.some(task => !task.contract || task.contractStale)}<p>{workflow.tasks.filter(task => !task.contract || task.contractStale).length} task contract(s) missing or stale.</p>{/if}
-          {#if !workflowRun}<Button on:click={startWorkflow}>Start workflow</Button>{/if}
+          {#if !workflowRun || workflowRunHistorical}<Button on:click={startWorkflow}>Start workflow</Button>{/if}
           {#if workflowRun}
             <h3>Pending gates</h3>
             {#each Object.values(workflow.gates) as gate}
-              <div class="workflow-row"><button on:click={() => gate.blockers[0]?.entityId && selectEntity(gate.blockers[0].entityId)}><strong>{gate.gate}</strong><small>{gate.approved ? "approved for current fingerprint" : gate.eligible ? "ready for review" : gate.blockers.map(b=>b.message).join(" · ")}</small></button>{#if !gate.approved}<Button disabled={!gate.eligible} on:click={() => approveGate(gate)}>Approve</Button>{/if}</div>
+              <div class="workflow-row"><button on:click={() => gate.blockers[0]?.entityId && selectEntity(gate.blockers[0].entityId)}><strong>{gate.gate}</strong><small>{gate.approved ? "approved for current fingerprint" : gate.eligible ? "ready for review" : gate.blockers.map(b=>b.message).join(" · ")}</small></button>{#if !gate.approved && !workflowRunHistorical}<Button disabled={!gate.eligible} on:click={() => approveGate(gate)}>Approve</Button>{/if}</div>
             {/each}
           {/if}
           <h3>Verification obligations</h3>

@@ -3,7 +3,7 @@ lengthwise: 1
 id: F-003
 type: feature
 title: Feature Workflow
-lifecycle: complete
+lifecycle: active
 significance: XL
 relationships:
   - { type: addresses, to: REQ-021 }

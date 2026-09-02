@@ -181,7 +181,7 @@ export async function cmdWorkflow(repoRoot:string,args:string[]):Promise<Command
   try{
     let data:unknown;
     switch(action){
-      case "status": {if(!rest[0])throw new Error("Usage: lw workflow status <FEATURE>");const run=workflow.state.active(rest[0]);data={assessment:await workflow.assess(rest[0]),run,history:workflow.state.history(rest[0]),events:run?workflow.state.events(run.id):[],attempts:run?workflow.state.attempts(run.id):[]};break;}
+      case "status": {if(!rest[0])throw new Error("Usage: lw workflow status <FEATURE>");const activeRun=workflow.state.active(rest[0]);const run=activeRun??workflow.state.latest(rest[0]);data={assessment:await workflow.assess(rest[0]),run,runHistorical:Boolean(run&&!activeRun),history:workflow.state.history(rest[0]),events:run?workflow.state.events(run.id):[],attempts:run?workflow.state.attempts(run.id):[]};break;}
       case "start": if(!rest[0])throw new Error("Usage: lw workflow start <FEATURE>");else data={run:await workflow.start(rest[0]),assessment:await workflow.assess(rest[0])};break;
       case "capture": if(rest.length<4)throw new Error("Usage: lw workflow capture <FEATURE> <TITLE> <DESTINATION> <IDEA>");else data=await workflow.startFromIdea({featureId:rest[0],title:rest[1]!,destination:rest[2]!,idea:rest.slice(3).join(" ")});break;
       case "approve": if(rest.length<3)throw new Error("Usage: lw workflow approve <RUN> <GATE> <FINGERPRINT>");else data=await workflow.approve(rest[0]!,rest[1] as WorkflowGate,rest[2]!);break;

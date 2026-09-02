@@ -100,6 +100,8 @@ export interface EvidenceEntity extends EntityBase<"evidence", EvidenceLifecycle
   title: string & tags.MinLength<1>; outcome: "passed" | "failed" | "inconclusive";
   result: string & tags.MinLength<1>; applicability: string & tags.MinLength<1>;
   contextFingerprint?: string;
+  contextFingerprints?: Record<string,string>;
+  revision?: string;
   kind?: string;
 }
 export interface BuildContractEntity extends EntityBase<"build-contract", BuildContractLifecycle> {

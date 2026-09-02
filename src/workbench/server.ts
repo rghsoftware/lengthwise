@@ -106,8 +106,8 @@ export async function startWorkbenchServer(
         }
         if (url.pathname.startsWith("/api/workflow/") && request.method === "GET") {
           const featureId = decodeURIComponent(url.pathname.slice("/api/workflow/".length));
-          const run=workflow.state.active(featureId);
-          return json({ ok: true, assessment: await workflow.assess(featureId), run, history: workflow.state.history(featureId), events:run?workflow.state.events(run.id):[], attempts:run?workflow.state.attempts(run.id):[] });
+          const activeRun=workflow.state.active(featureId);const run=activeRun??workflow.state.latest(featureId);
+          return json({ ok: true, assessment: await workflow.assess(featureId), run, runHistorical:Boolean(run&&!activeRun), history: workflow.state.history(featureId), events:run?workflow.state.events(run.id):[], attempts:run?workflow.state.attempts(run.id):[] });
         }
         if (url.pathname === "/api/workflow" && request.method === "POST") {
           if (request.headers.get("origin") !== origin) return json({ ok: false, error: { code: "untrusted-origin" } }, 403);

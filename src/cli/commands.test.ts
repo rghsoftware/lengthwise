@@ -177,6 +177,13 @@ test("lw serve rejects a directory without Lengthwise configuration", async () =
   expect(result.waitUntil).toBeUndefined();
 });
 
+test("workflow CLI starts, reports, and cancels a persisted run",async()=>{
+  const root=await createFixtureRepo({".lengthwise/project.yaml":CONFIG,"engineering/entities.yaml":`${ENTITIES}\n  - { id: F-CLI, type: feature, title: CLI workflow, lifecycle: draft, significance: S, relationships: [{ type: addresses, to: REQ-001 }] }\n`});cleanup.push(root);
+  const started=await runCli(["workflow","start","F-CLI"],root);expect(started.exitCode).toBe(0);const runId=(started.data as any).run.id;
+  const status=await runCli(["workflow","status","F-CLI"],root);expect((status.data as any).run.id).toBe(runId);expect((status.data as any).assessment.actions.length).toBeGreaterThan(0);
+  const cancelled=await runCli(["workflow","cancel",runId,"operator request"],root);expect((cancelled.data as any).state).toBe("cancelled");
+});
+
 // Dogfood: the real Lengthwise repository's own artifacts, end to end through the CLI.
 test("lw check, show, trace, and ready work against this repository's own artifacts", async () => {
   const repoRoot = process.cwd();

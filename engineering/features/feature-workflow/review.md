@@ -7,6 +7,8 @@ lifecycle: accepted
 
 # F-003 Verification and Closeout Review
 
+> **Reopened 2026-09-02:** The original closeout evidence predates material workflow-semantic and workbench changes. This historical review is retained, but F-003 remains active until current automated Evidence and a new moderated workbench evaluation satisfy the revised implementation.
+
 ## Review disposition
 
 F-003 is **accepted for completion**. Automated verification and repository-owner workbench review provide satisfactory evidence. Findings from the manual review were reconciled through persistent, actionable findings and an action-first entity inspector before acceptance.

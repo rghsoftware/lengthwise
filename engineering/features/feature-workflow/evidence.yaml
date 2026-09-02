@@ -3,7 +3,7 @@ entities:
   - id: EVID-F003-AUTOMATED-001
     type: evidence
     title: F-003 automated verification suite
-    lifecycle: recorded
+    lifecycle: superseded
     outcome: passed
     result: "TypeScript compilation, 99 Bun tests, production workbench build, lw index, and lw check passed on 2026-09-01."
     applicability: "F-003 final closeout implementation and authoritative artifacts as validated on 2026-09-01."
@@ -31,7 +31,7 @@ entities:
   - id: EVID-F003-MANUAL-001
     type: evidence
     title: F-003 repository-owner workbench review
-    lifecycle: recorded
+    lifecycle: superseded
     outcome: passed
     result: "The repository owner reviewed the workbench on a 1440p display and accepted the corrected interaction: workflow context, persistent findings drawer, affected-entity markers, sticky local findings, direct source navigation, and an action-first inspector hierarchy."
     applicability: "F-003 final workbench implementation and authoritative artifacts reviewed on 2026-09-01."
@@ -40,3 +40,49 @@ entities:
       - { type: supports, to: VER-029 }
       - { type: supports, to: VER-031 }
       - { type: supports, to: VER-033 }
+  - id: EVID-F003-AUTOMATED-002
+    type: evidence
+    title: F-003 reopened deterministic workflow verification
+    lifecycle: recorded
+    outcome: passed
+    result: "TypeScript compilation, 112 Bun tests, production workbench build, lw index, and lw check passed on 2026-09-02. Coverage includes semantic approval invalidation, terminal projections, run/action-scoped idempotency, symlink-safe capture, target-specific multi-task waits, handoff/return, interruption/resume/retry, cancellation, reconciliation, completion, workflow CLI, and HTTP action authorization."
+    applicability: "The current F-003 working tree after commit 55990b6, including the 2026-09-02 blocker reconciliation changes."
+    contextFingerprints:
+      VER-022: f671fd04bdaa89d3
+      VER-023: fccf7191d2c16b32
+      VER-024: dce5276c6ad8ade1
+      VER-025: 5712230521aa0e76
+      VER-026: 5251348c334c1182
+      VER-027: 319f591e97b072a3
+      VER-028: a8d7b0f3652578c0
+      VER-029: adac8572689c8fa8
+      VER-030: 4d97bce28d6805dd
+      VER-031: 9865c8ca1acdb6f
+      VER-032: 2a66c2a5f6daaa5f
+    relationships:
+      - { type: supports, to: VER-022 }
+      - { type: supports, to: VER-023 }
+      - { type: supports, to: VER-024 }
+      - { type: supports, to: VER-025 }
+      - { type: supports, to: VER-026 }
+      - { type: supports, to: VER-027 }
+      - { type: supports, to: VER-028 }
+      - { type: supports, to: VER-029 }
+      - { type: supports, to: VER-030 }
+      - { type: supports, to: VER-031 }
+      - { type: supports, to: VER-032 }
+  - id: EVID-F003-BROWSER-002
+    type: evidence
+    title: F-003 reopened workbench browser verification
+    lifecycle: recorded
+    outcome: passed
+    result: "The production workbench was opened against F-003 on 2026-09-02 after final contract regeneration. The rendered workflow visibly distinguished the active Feature lifecycle from the historical complete run, offered an explicit new-run action, showed pending gate eligibility and blockers, reported eleven satisfactory verification obligations and the remaining inapplicable moderated-usability obligation, exposed actionable authoring targets and expected outputs, and disabled completion."
+    applicability: "Current F-003 workbench and local workflow endpoints after the 2026-09-02 blocker reconciliation changes."
+    contextFingerprints:
+      VER-026: 5251348c334c1182
+      VER-029: adac8572689c8fa8
+      VER-031: 9865c8ca1acdb6f
+    relationships:
+      - { type: supports, to: VER-026 }
+      - { type: supports, to: VER-029 }
+      - { type: supports, to: VER-031 }

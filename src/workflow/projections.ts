@@ -3,24 +3,27 @@ import type { ProjectGraph } from "../graph/project-graph.ts";
 
 export function entitySemanticFingerprint(entity: Entity | undefined): string {
   if (!entity) return "missing";
-  const { source: _source, body: _body, ...authored } = entity;
+  const { source: _source, ...authored } = entity;
   return Bun.hash(JSON.stringify(authored, Object.keys(authored).sort())).toString(16);
 }
+function contractInputFingerprint(entity:Entity|undefined):string{if(!entity)return "missing";if(entity.type!=="task")return entitySemanticFingerprint(entity);const {source:_source,lifecycle:_lifecycle,...semantic}=entity;return Bun.hash(JSON.stringify(semantic,Object.keys(semantic).sort())).toString(16);}
 export function verificationContextFingerprint(graph: ProjectGraph, verificationId: string): string {
   const verification = graph.getEntity(verificationId);
   const criteria = graph.outgoingRelationships(verificationId).filter(r=>r.type==="verifies").map(r=>r.to).sort();
   return Bun.hash(JSON.stringify({ verification: entitySemanticFingerprint(verification), criteria: criteria.map(id=>[id,entitySemanticFingerprint(graph.getEntity(id))]) })).toString(16);
 }
 export type EvidenceStatus = "satisfactory" | "missing" | "failing" | "inconclusive" | "stale" | "inapplicable" | "missing-complement";
-export function evidenceSatisfaction(graph: ProjectGraph, verificationId: string) {
+export function evidenceSatisfaction(graph: ProjectGraph, verificationId: string, currentRevision?:string) {
   const verification = graph.getEntity(verificationId); if (!verification || verification.type !== "verification") throw new Error(`Unknown verification ${verificationId}`);
   const currentFingerprint = verificationContextFingerprint(graph, verificationId);
   const evidence = graph.incomingRelationships(verificationId).filter(r => r.type === "supports").map(r => graph.getEntity(r.from)).filter((e): e is Extract<Entity,{type:"evidence"}> => e?.type === "evidence");
   const assessments = evidence.map(item => {
     let status: EvidenceStatus;
+    const declaredFingerprint=item.contextFingerprints?.[verificationId]??item.contextFingerprint??(item.applicability.startsWith("fingerprint:")?item.applicability.slice(12).trim():undefined);
     if (item.lifecycle !== "recorded" || /^inapplicable\b/i.test(item.applicability)) status = "inapplicable";
-    else if (item.contextFingerprint && item.contextFingerprint !== currentFingerprint) status = "stale";
-    else if (item.applicability.startsWith("fingerprint:") && item.applicability.slice(12).trim() !== currentFingerprint) status = "stale";
+    else if(item.revision&&(!currentRevision||item.revision!==currentRevision)) status="stale";
+    else if (!declaredFingerprint) status = "inapplicable";
+    else if (declaredFingerprint !== currentFingerprint) status = "stale";
     else if (item.outcome === "failed") status = "failing";
     else if (item.outcome === "inconclusive") status = "inconclusive";
     else status = "satisfactory";
@@ -43,7 +46,7 @@ export function buildContractContext(graph: ProjectGraph, taskId: string) {
   const decisions = graph.entitiesOfType("decision").filter(d=>d.lifecycle==="accepted" && graph.outgoingRelationships(d.id).some(r=>r.type==="governs"&&governed.has(r.to))).map(d=>d.id).sort();
   const context = { task: taskId, requirements, criteria, decisions, verifications, dependencies };
   const semanticIds=[taskId,...requirements,...criteria,...decisions,...verifications,...dependencies];
-  const inputFingerprints=Object.fromEntries([...new Set(semanticIds)].sort().map(id=>[id,entitySemanticFingerprint(graph.getEntity(id))]));
+  const inputFingerprints=Object.fromEntries([...new Set(semanticIds)].sort().map(id=>[id,contractInputFingerprint(graph.getEntity(id))]));
   return { ...context, inputFingerprints, fingerprint: Bun.hash(JSON.stringify({context,inputFingerprints})).toString(16) };
 }
 export function contractStaleness(graph:ProjectGraph, contractId:string) {

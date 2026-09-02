@@ -1,13 +1,16 @@
 import { afterEach, expect, test } from "bun:test";
 import { createFixtureRepo, removeFixtureRepo } from "../test-support/fixture-repo.ts";
 import { WorkflowStateStore } from "./state-store.ts";
-import { buildContractContext, evidenceSatisfaction } from "./projections.ts";
+import { buildContractContext, evidenceSatisfaction, verificationContextFingerprint } from "./projections.ts";
 import { ProjectGraph } from "../graph/project-graph.ts";
 import type { Entity } from "../domain/entities.ts";
 import type { Relationship } from "../domain/relationships.ts";
 import { requiredVerificationsForFeature } from "./coordinator.ts";
 import { WorkflowCoordinator } from "./coordinator.ts";
 import { Database } from "bun:sqlite";
+import { symlink } from "node:fs/promises";
+import { buildProjectGraph } from "../graph/build.ts";
+import { renderContractArtifact } from "./contracts.ts";
 
 const roots:string[]=[]; afterEach(async()=>{for(const r of roots.splice(0)) await removeFixtureRepo(r)});
 const source={artifactPath:"engineering/model.yaml",line:1};
@@ -24,11 +27,11 @@ test("contract context is bounded and deterministic while evidence satisfaction 
   const entities:Entity[]=[
     {id:"TASK-1",type:"task",title:"work",lifecycle:"planned",source}, {id:"REQ-1",type:"requirement",title:"r",statement:"s",lifecycle:"accepted",source},
     {id:"AC-1",type:"acceptance-criterion",statement:"a",lifecycle:"accepted",source}, {id:"VER-1",type:"verification",title:"v",method:"test",required:true,lifecycle:"defined",source},
-    {id:"E-1",type:"evidence",title:"result",outcome:"passed",result:"ok",applicability:"rev",lifecycle:"recorded",source},
     {id:"REQ-X",type:"requirement",title:"unrelated",statement:"x",lifecycle:"draft",source}
   ];
-  const relationships=[{type:"implements" as const,from:"TASK-1",to:"REQ-1"},{type:"has-acceptance-criterion" as const,from:"REQ-1",to:"AC-1"},{type:"verifies" as const,from:"VER-1",to:"AC-1"},{type:"supports" as const,from:"E-1",to:"VER-1"}];
-  const g=graph(entities,relationships); const first=buildContractContext(g,"TASK-1"); const second=buildContractContext(g,"TASK-1");
+  const baseRelationships=[{type:"implements" as const,from:"TASK-1",to:"REQ-1"},{type:"has-acceptance-criterion" as const,from:"REQ-1",to:"AC-1"},{type:"verifies" as const,from:"VER-1",to:"AC-1"}];
+  const contextFingerprint=verificationContextFingerprint(graph(entities,baseRelationships),"VER-1");entities.push({id:"E-1",type:"evidence",title:"result",outcome:"passed",result:"ok",applicability:"current",contextFingerprint,lifecycle:"recorded",source});
+  const relationships=[...baseRelationships,{type:"supports" as const,from:"E-1",to:"VER-1"}];const g=graph(entities,relationships); const first=buildContractContext(g,"TASK-1"); const second=buildContractContext(g,"TASK-1");
   expect(first).toEqual(second); expect(first.requirements).toEqual(["REQ-1"]); expect(JSON.stringify(first)).not.toContain("REQ-X"); expect(evidenceSatisfaction(g,"VER-1").satisfied).toBe(true);
   const changed=graph(entities.map(e=>e.id==="REQ-1"?{...e,statement:"changed governing behavior"}:e) as Entity[],relationships);
   expect(buildContractContext(changed,"TASK-1").fingerprint).not.toBe(first.fingerprint);
@@ -61,7 +64,7 @@ test("state schema migration is transactional, typed, and adds idempotent attemp
     CREATE UNIQUE INDEX one_active_run_per_feature ON workflow_runs(feature_id) WHERE state NOT IN ('cancelled','complete');
     CREATE TABLE workflow_events(id TEXT PRIMARY KEY,run_id TEXT NOT NULL,kind TEXT NOT NULL,context_fingerprint TEXT,payload TEXT NOT NULL,created_at TEXT NOT NULL);
     INSERT INTO workflow_runs VALUES('R','F','planning','running','now','now');`); db.close();
-  const store=new WorkflowStateStore(path); expect(store.schemaVersion()).toBe(2); expect(store.get("R")?.activity).toBe("plan");
+  const store=new WorkflowStateStore(path); expect(store.schemaVersion()).toBe(3); expect(store.get("R")?.activity).toBe("plan");
   const first=store.beginAttempt("R","author:X","same","fp"); const retry=store.beginAttempt("R","author:X","same","fp"); expect(retry.id).toBe(first.id);
   store.finishAttempt(first.id,"interrupted"); expect(store.retryAttempt(first.id,"fp").state).toBe("running");
   expect(()=>store.update("R","unknown" as any,"running")).toThrow("Unsupported workflow activity"); store.close();
@@ -71,12 +74,13 @@ test("evidence applicability and complementary requirements are explicit",()=>{
   const entities:Entity[]=[
     {id:"AC",type:"acceptance-criterion",statement:"observable",lifecycle:"accepted",source},
     {id:"VER",type:"verification",title:"verify",method:"review",required:true,evidenceRequirements:["test","review"],lifecycle:"defined",source},
-    {id:"E1",type:"evidence",title:"test",outcome:"passed",result:"ok",applicability:"current",kind:"test",lifecycle:"recorded",source},
-    {id:"E2",type:"evidence",title:"old review",outcome:"passed",result:"ok",applicability:"fingerprint:old",kind:"review",lifecycle:"recorded",source},
   ];
+  const current=verificationContextFingerprint(graph(entities,[{type:"verifies",from:"VER",to:"AC"}]),"VER");entities.push({id:"E1",type:"evidence",title:"test",outcome:"passed",result:"ok",applicability:"current",contextFingerprint:current,kind:"test",lifecycle:"recorded",source},{id:"E2",type:"evidence",title:"old review",outcome:"passed",result:"ok",applicability:"fingerprint:old",kind:"review",lifecycle:"recorded",source});
   const g=graph(entities,[{type:"verifies",from:"VER",to:"AC"},{type:"supports",from:"E1",to:"VER"},{type:"supports",from:"E2",to:"VER"}]);
   const result=evidenceSatisfaction(g,"VER"); expect(result.satisfied).toBe(false); expect(result.status).toBe("missing-complement"); expect(result.assessments.find(a=>a.evidenceId==="E2")?.status).toBe("stale");
 });
+
+test("unversioned free-form Evidence is inapplicable rather than silently current",()=>{const entities:Entity[]=[{id:"AC",type:"acceptance-criterion",statement:"observable",lifecycle:"accepted",source},{id:"VER",type:"verification",title:"verify",method:"test",required:true,lifecycle:"defined",source},{id:"E",type:"evidence",title:"old",outcome:"passed",result:"passed",applicability:"Reviewed yesterday",lifecycle:"recorded",source}];const result=evidenceSatisfaction(graph(entities,[{type:"verifies",from:"VER",to:"AC"},{type:"supports",from:"E",to:"VER"}]),"VER");expect(result.satisfied).toBe(false);expect(result.assessments[0]?.status).toBe("inapplicable");});
 
 const WORKFLOW_CONFIG=`lengthwise: 1
 project: { name: Workflow }
@@ -104,4 +108,58 @@ entities:
 `;
   const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/model.yaml":model});roots.push(root);const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F");const assessed=await coordinator.assess("F");
   await expect(coordinator.approve(run.id,"specification","stale")).rejects.toThrow("stale");const approved=await coordinator.approve(run.id,"specification",assessed.gates.specification.fingerprint);expect(approved.activity).toBe("plan");expect((await coordinator.assess("F")).gates.specification.approved).toBe(true);coordinator.close();
+});
+
+test("material specification edits invalidate a prior approval",async()=>{
+  const model=`lengthwise: 1
+entities:
+  - { id: F, type: feature, title: Feature, lifecycle: draft, significance: S, relationships: [{ type: addresses, to: REQ }] }
+  - { id: REQ, type: requirement, title: Requirement, statement: Original behavior, lifecycle: accepted, relationships: [{ type: has-acceptance-criterion, to: AC }] }
+  - { id: AC, type: acceptance-criterion, statement: It works, lifecycle: accepted }
+  - { id: VER, type: verification, title: Verify, method: test, required: true, lifecycle: defined, relationships: [{ type: verifies, to: AC }] }
+`;
+  const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/model.yaml":model});roots.push(root);const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F");const before=await coordinator.assess("F");await coordinator.approve(run.id,"specification",before.gates.specification.fingerprint);
+  await Bun.write(`${root}/engineering/model.yaml`,model.replace("Original behavior","Materially changed behavior"));const after=await coordinator.assess("F");expect(after.gates.specification.fingerprint).not.toBe(before.gates.specification.fingerprint);expect(after.gates.specification.approved).toBe(false);coordinator.close();
+});
+
+test("attempt identity is isolated by run and action and waits resolve by target",async()=>{
+  const root=await createFixtureRepo({".keep":""});roots.push(root);const store=new WorkflowStateStore(`${root}/state.db`);const one=store.start("F1");const two=store.start("F2");
+  const a=store.beginAttempt(one.id,"handoff:T","same");const b=store.beginAttempt(two.id,"handoff:T","same");const c=store.beginAttempt(one.id,"return:T","same");expect(new Set([a.id,b.id,c.id]).size).toBe(3);
+  store.wait(one.id,"implementation","T1");store.wait(one.id,"implementation","T2");store.resolveWaits(one.id,"implementation","T1");expect(store.waiting(one.id,"implementation")).toEqual([{targetId:"T2"}]);store.close();
+});
+
+test("capture rejects a destination whose parent symlink escapes the repository",async()=>{
+  const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/.keep":""});roots.push(root);const outside=await createFixtureRepo({".keep":""});roots.push(outside);await symlink(outside,`${root}/engineering/link`);const coordinator=await WorkflowCoordinator.open(root);
+  await expect(coordinator.startFromIdea({featureId:"F-ESCAPE",title:"Escape",idea:"No",destination:"engineering/link/new/escape.yaml"})).rejects.toThrow("outside the selected project");expect(await Bun.file(`${outside}/new`).exists()).toBe(false);coordinator.close();
+});
+
+const STANDARD_CONFIG=WORKFLOW_CONFIG.replace("policy: { rigor: light }","policy: { rigor: standard }");
+const FULL_MODEL=`lengthwise: 1
+entities:
+  - { id: F-FULL, type: feature, title: Full workflow, lifecycle: draft, significance: M, relationships: [{ type: addresses, to: REQ-FULL }] }
+  - { id: REQ-FULL, type: requirement, title: Full requirement, statement: Complete the workflow, lifecycle: accepted, relationships: [{ type: has-acceptance-criterion, to: AC-FULL }] }
+  - { id: AC-FULL, type: acceptance-criterion, statement: The workflow completes, lifecycle: accepted }
+  - { id: VER-FULL, type: verification, title: Full verification, method: automated, required: true, lifecycle: defined, relationships: [{ type: verifies, to: AC-FULL }] }
+  - { id: TASK-FULL, type: task, title: Implement it, lifecycle: planned, relationships: [{ type: implements, to: REQ-FULL }] }
+  - { id: PLAN-FULL, type: plan, title: Plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-FULL }] }
+`;
+
+test("handoff, interruption, resume, retry, return, reconciliation, completion, and terminal projection converge",async()=>{
+  const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":FULL_MODEL});roots.push(root);let built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-FULL"]));
+  const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessed=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",assessed.gates.specification.fingerprint);assessed=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"build-contract",assessed.gates["build-contract"].fingerprint);
+  await coordinator.handoff(run.id,"TASK-FULL","handoff-key");assessed=await coordinator.assess("F-FULL");const authored=coordinator.state.beginAttempt(run.id,"author:progress","progress-key",assessed.fingerprint);expect(coordinator.interrupt(run.id,"pause").state).toBe("interrupted");const resumed=await coordinator.resume(run.id);expect(resumed.classifications[0]?.classification).toBe("no-write-observed");expect((await coordinator.retry(run.id,authored.id)).state).toBe("running");coordinator.state.finishAttempt(authored.id,"succeeded");
+  const returned=await coordinator.returnImplementation(run.id,"TASK-FULL","implementation finished","return-key");expect(returned.result).toEqual(expect.objectContaining({remaining:[]}));
+  await Bun.write(`${root}/engineering/model.yaml`,FULL_MODEL.replace("lifecycle: planned","lifecycle: done"));built=await buildProjectGraph(root);if(!built.ok)throw new Error("updated fixture failed");const evidenceFingerprint=verificationContextFingerprint(built.graph,"VER-FULL");await Bun.write(`${root}/engineering/evidence.yaml`,`lengthwise: 1\nentities:\n  - { id: E-FULL, type: evidence, title: Result, lifecycle: recorded, outcome: passed, result: Passed, applicability: current, contextFingerprint: ${evidenceFingerprint}, relationships: [{ type: supports, to: VER-FULL }] }\n`);
+  expect((await coordinator.assess("F-FULL")).reconciliation.required).toBe(true);expect((await coordinator.reconcile(run.id,"complete","Artifacts and implementation converge")).activity).toBe("complete");await Bun.write(`${root}/engineering/model.yaml`,FULL_MODEL.replace("lifecycle: draft","lifecycle: complete").replace("lifecycle: planned","lifecycle: done"));expect((await coordinator.complete(run.id)).state).toBe("complete");
+  const terminal=await coordinator.assess("F-FULL");expect(terminal.gates.specification.approved).toBe(true);expect(terminal.gates["build-contract"].approved).toBe(true);expect(terminal.completionEligible).toBe(true);coordinator.close();
+});
+
+test("cancellation preserves terminal history and permits a later run",async()=>{
+  const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/model.yaml":FULL_MODEL});roots.push(root);const coordinator=await WorkflowCoordinator.open(root);const first=await coordinator.start("F-FULL");expect(coordinator.cancel(first.id,"not now").state).toBe("cancelled");const second=await coordinator.start("F-FULL");expect(second.id).not.toBe(first.id);expect(coordinator.state.history("F-FULL")).toHaveLength(2);coordinator.close();
+});
+
+test("returning one of multiple handed-off tasks preserves the other implementation wait",async()=>{
+  const model=FULL_MODEL.replace("  - { id: PLAN-FULL",`  - { id: TASK-SECOND, type: task, title: Implement second, lifecycle: planned, relationships: [{ type: implements, to: REQ-FULL }] }\n  - { id: PLAN-FULL`).replace("relationships: [{ type: contains, to: TASK-FULL }]","relationships: [{ type: contains, to: TASK-FULL }, { type: contains, to: TASK-SECOND }]");
+  const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":model});roots.push(root);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-FULL","TASK-SECOND"]));const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let a=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",a.gates.specification.fingerprint);a=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"build-contract",a.gates["build-contract"].fingerprint);await coordinator.handoff(run.id,"TASK-FULL","h1");await coordinator.handoff(run.id,"TASK-SECOND","h2");
+  const returned=await coordinator.returnImplementation(run.id,"TASK-FULL","first done","r1");expect(returned.result).toEqual(expect.objectContaining({remaining:["TASK-SECOND"]}));expect(coordinator.state.get(run.id)).toMatchObject({activity:"implement",state:"waiting-implementation"});expect(coordinator.state.waiting(run.id,"implementation")).toEqual([{targetId:"TASK-SECOND"}]);coordinator.close();
 });

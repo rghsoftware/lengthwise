@@ -272,5 +272,8 @@ test("workflow API assesses, starts, persists, and protects feature runs", async
   const started = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({featureId:"F-TEST"})}); expect(started.status).toBe(201);
   const body=await started.json() as any; expect(body.run.featureId).toBe("F-TEST");
   const resumed=await fetch(`${result.url}/api/workflow/F-TEST`); expect((await resumed.json() as any).run.id).toBe(body.run.id);
+  const untrustedAction=await fetch(`${result.url}/api/workflow/action`,{method:"POST",headers:{"content-type":"application/json",origin:"https://untrusted.example"},body:JSON.stringify({runId:body.run.id,action:"cancel",reason:"no"})});expect(untrustedAction.status).toBe(403);
+  const action=await fetch(`${result.url}/api/workflow/action`,{method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({runId:body.run.id,action:"cancel",reason:"HTTP test"})});expect(action.status).toBe(200);expect((await action.json() as any).result.state).toBe("cancelled");
+  const terminal=await fetch(`${result.url}/api/workflow/F-TEST`);const terminalBody=await terminal.json() as any;expect(terminalBody.run.state).toBe("cancelled");expect(terminalBody.runHistorical).toBe(true);
   result.workflow.close();
 });
