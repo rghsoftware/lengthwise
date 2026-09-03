@@ -122,6 +122,27 @@ entities:
   await Bun.write(`${root}/engineering/model.yaml`,model.replace("Original behavior","Materially changed behavior"));const after=await coordinator.assess("F");expect(after.gates.specification.fingerprint).not.toBe(before.gates.specification.fingerprint);expect(after.gates.specification.approved).toBe(false);coordinator.close();
 });
 
+test("a blocked specification exposes one actionable repair target",async()=>{
+  const model=`lengthwise: 1
+entities:
+  - { id: F-WORK, type: feature, title: Feature, lifecycle: draft, significance: S, relationships: [{ type: addresses, to: REQ-MISSING }] }
+`;
+  const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/model.yaml":model});roots.push(root);const coordinator=await WorkflowCoordinator.open(root);
+  const assessment=await coordinator.assess("F-WORK");const repair=assessment.actions.find(action=>action.id==="repair-specification");
+  expect(repair).toEqual(expect.objectContaining({eligible:true,target:expect.objectContaining({entityId:"F-WORK"})}));
+  expect(repair?.requiredInputs[0]).toContain("does not exist");coordinator.close();
+});
+
+test("a completed Feature cannot start a run and an existing run offers explicit reconciliation choices",async()=>{
+  const model=`lengthwise: 1
+entities:
+  - { id: F-DONE, type: feature, title: Complete Feature, lifecycle: complete, significance: S }
+`;
+  const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/model.yaml":model});roots.push(root);const coordinator=await WorkflowCoordinator.open(root);
+  await expect(coordinator.start("F-DONE")).rejects.toThrow("reopen it to active");coordinator.state.start("F-DONE","specify");const assessment=await coordinator.assess("F-DONE");
+  expect(assessment.gates.specification.blockers[0]?.code).toBe("lifecycle-run-conflict");expect(assessment.actions.map(action=>action.id)).toEqual(["reopen-feature","cancel-stale-run"]);coordinator.close();
+});
+
 test("attempt identity is isolated by run and action and waits resolve by target",async()=>{
   const root=await createFixtureRepo({".keep":""});roots.push(root);const store=new WorkflowStateStore(`${root}/state.db`);const one=store.start("F1");const two=store.start("F2");
   const a=store.beginAttempt(one.id,"handoff:T","same");const b=store.beginAttempt(two.id,"handoff:T","same");const c=store.beginAttempt(one.id,"return:T","same");expect(new Set([a.id,b.id,c.id]).size).toBe(3);
@@ -146,8 +167,8 @@ entities:
 
 test("handoff, interruption, resume, retry, return, reconciliation, completion, and terminal projection converge",async()=>{
   const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":FULL_MODEL});roots.push(root);let built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-FULL"]));
-  const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessed=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",assessed.gates.specification.fingerprint);assessed=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"build-contract",assessed.gates["build-contract"].fingerprint);
-  await coordinator.handoff(run.id,"TASK-FULL","handoff-key");assessed=await coordinator.assess("F-FULL");const authored=coordinator.state.beginAttempt(run.id,"author:progress","progress-key",assessed.fingerprint);expect(coordinator.interrupt(run.id,"pause").state).toBe("interrupted");const resumed=await coordinator.resume(run.id);expect(resumed.classifications[0]?.classification).toBe("no-write-observed");expect((await coordinator.retry(run.id,authored.id)).state).toBe("running");coordinator.state.finishAttempt(authored.id,"succeeded");
+  const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessed=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",assessed.gates.specification.fingerprint);assessed=await coordinator.assess("F-FULL");expect(assessed.actions.some(action=>action.id.startsWith("author-contract:"))).toBe(false);expect(assessed.actions[0]?.id).toBe("review-build-contract");expect(assessed.actions[0]?.target).toEqual({entityId:"BC-TASK-FULL",artifactPath:"engineering/contracts.yaml"});await coordinator.approve(run.id,"build-contract",assessed.gates["build-contract"].fingerprint);assessed=await coordinator.assess("F-FULL");expect(assessed.actions.find(action=>action.id==="handoff:TASK-FULL")?.target).toEqual({entityId:"BC-TASK-FULL",artifactPath:"engineering/contracts.yaml"});
+  await coordinator.handoff(run.id,"TASK-FULL","handoff-key");assessed=await coordinator.assess("F-FULL");expect(assessed.actions.some(action=>action.id==="handoff:TASK-FULL")).toBe(false);expect(assessed.actions.find(action=>action.id==="return:TASK-FULL")?.kind).toBe("implementation-return");const authored=coordinator.state.beginAttempt(run.id,"author:progress","progress-key",assessed.fingerprint);expect(coordinator.interrupt(run.id,"pause").state).toBe("interrupted");const resumed=await coordinator.resume(run.id);expect(resumed.classifications[0]?.classification).toBe("no-write-observed");expect((await coordinator.retry(run.id,authored.id)).state).toBe("running");coordinator.state.finishAttempt(authored.id,"succeeded");
   const returned=await coordinator.returnImplementation(run.id,"TASK-FULL","implementation finished","return-key");expect(returned.result).toEqual(expect.objectContaining({remaining:[]}));
   await Bun.write(`${root}/engineering/model.yaml`,FULL_MODEL.replace("lifecycle: planned","lifecycle: done"));built=await buildProjectGraph(root);if(!built.ok)throw new Error("updated fixture failed");const evidenceFingerprint=verificationContextFingerprint(built.graph,"VER-FULL");await Bun.write(`${root}/engineering/evidence.yaml`,`lengthwise: 1\nentities:\n  - { id: E-FULL, type: evidence, title: Result, lifecycle: recorded, outcome: passed, result: Passed, applicability: current, contextFingerprint: ${evidenceFingerprint}, relationships: [{ type: supports, to: VER-FULL }] }\n`);
   expect((await coordinator.assess("F-FULL")).reconciliation.required).toBe(true);expect((await coordinator.reconcile(run.id,"complete","Artifacts and implementation converge")).activity).toBe("complete");await Bun.write(`${root}/engineering/model.yaml`,FULL_MODEL.replace("lifecycle: draft","lifecycle: complete").replace("lifecycle: planned","lifecycle: done"));expect((await coordinator.complete(run.id)).state).toBe("complete");
@@ -156,6 +177,10 @@ test("handoff, interruption, resume, retry, return, reconciliation, completion, 
 
 test("cancellation preserves terminal history and permits a later run",async()=>{
   const root=await createFixtureRepo({".lengthwise/project.yaml":WORKFLOW_CONFIG,"engineering/model.yaml":FULL_MODEL});roots.push(root);const coordinator=await WorkflowCoordinator.open(root);const first=await coordinator.start("F-FULL");expect(coordinator.cancel(first.id,"not now").state).toBe("cancelled");const second=await coordinator.start("F-FULL");expect(second.id).not.toBe(first.id);expect(coordinator.state.history("F-FULL")).toHaveLength(2);coordinator.close();
+});
+
+test("completed tasks are not offered for implementation handoff",async()=>{
+  const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":FULL_MODEL.replace("lifecycle: planned","lifecycle: done")});roots.push(root);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-FULL"]));const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessment=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",assessment.gates.specification.fingerprint);assessment=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"build-contract",assessment.gates["build-contract"].fingerprint);assessment=await coordinator.assess("F-FULL");expect(assessment.tasks[0]?.lifecycle).toBe("done");expect(assessment.actions.some(action=>action.id==="handoff:TASK-FULL")).toBe(false);coordinator.close();
 });
 
 test("returning one of multiple handed-off tasks preserves the other implementation wait",async()=>{

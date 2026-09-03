@@ -7,6 +7,7 @@ import { ArtifactService } from "./artifact-service.ts";
 import { compareSuccessfulGraphs } from "./change-service.ts";
 import { WorkbenchQueryService } from "./query-service.ts";
 import type { ArtifactDocument, EntityDetail, EntitySummary, ModelChange, WorkbenchSnapshot } from "./types.ts";
+import { ENTITY_LIFECYCLES, updateLifecycleContent } from "./lifecycle-service.ts";
 
 interface SuccessfulBuild {
   graph: ProjectGraph;
@@ -76,6 +77,22 @@ export class WorkbenchSession {
     const artifact = await this.artifacts.write(path, content, expectedVersion);
     await this.rebuild();
     return { artifact, snapshot: this.snapshot() };
+  }
+
+  async updateEntityLifecycle(id: string, lifecycle: string, expectedVersion: string): Promise<{
+    artifact: ArtifactDocument;
+    snapshot: WorkbenchSnapshot;
+    entity: EntityDetail;
+  }> {
+    const entity = this.current.graph.getEntity(id);
+    if (!entity) throw new Error(`Unknown entity ${id}`);
+    if (!ENTITY_LIFECYCLES[entity.type].includes(lifecycle)) throw new Error(`Unsupported ${entity.type} lifecycle ${JSON.stringify(lifecycle)}`);
+    const current = await this.artifacts.read(entity.source.artifactPath);
+    const content = updateLifecycleContent(current.content, id, entity.lifecycle, lifecycle);
+    const saved = await this.saveArtifact(entity.source.artifactPath, content, expectedVersion);
+    const updated = this.getEntity(id);
+    if (!updated || updated.entity.lifecycle !== lifecycle) throw new Error(`Lifecycle update for ${id} did not produce the requested authoritative state`);
+    return {...saved, entity:updated};
   }
 
   private async rebuild(): Promise<void> {

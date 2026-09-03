@@ -6,7 +6,7 @@ import { formatDiagnostic } from "./format.ts";
 import type { Diagnostic } from "../diagnostics.ts";
 import type { Entity } from "../domain/entities.ts";
 import type { ProjectGraph } from "../graph/project-graph.ts";
-import { startWorkbenchServer } from "../workbench/server.ts";
+import { DEFAULT_WORKBENCH_PORT, startWorkbenchServer } from "../workbench/server.ts";
 import { WorkflowCoordinator, type WorkflowGate } from "../workflow/coordinator.ts";
 
 export interface CommandResult {
@@ -16,9 +16,27 @@ export interface CommandResult {
   waitUntil?: Promise<void>;
 }
 
+export function parseServePort(args: string[]): { ok: true; port: number } | { ok: false; message: string } {
+  if (args.length === 0) return { ok: true, port: DEFAULT_WORKBENCH_PORT };
+
+  let value: string | undefined;
+  if ((args[0] === "--port" || args[0] === "-p") && args.length === 2) value = args[1];
+  else if (args.length === 1 && args[0]?.startsWith("--port=")) value = args[0].slice("--port=".length);
+  else return { ok: false, message: "Usage: lw serve [--port <PORT>]" };
+
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    return { ok: false, message: `Invalid port "${value ?? ""}". Choose a whole number from 1 to 65535.` };
+  }
+  return { ok: true, port };
+}
+
 /** `lw serve` — F-002 local browser workbench. */
-export async function cmdServe(repoRoot: string): Promise<CommandResult> {
-  const result = await startWorkbenchServer(repoRoot);
+export async function cmdServe(repoRoot: string, args: string[] = []): Promise<CommandResult> {
+  const parsed = parseServePort(args);
+  if (!parsed.ok) return { exitCode: 1, data: { ok: false, error: "invalid-port" }, lines: [parsed.message] };
+
+  const result = await startWorkbenchServer(repoRoot, { port: parsed.port });
   if (!result.ok) return buildFailureResult(result.diagnostics);
   return {
     exitCode: 0,

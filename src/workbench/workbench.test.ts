@@ -102,6 +102,17 @@ test("explicit save advances successful baseline and reports lifecycle change", 
   expect(started.session.getEntity("TASK-001")!.entity.lifecycle).toBe("in-progress");
 });
 
+test("lifecycle controls update YAML and Markdown through the authorized save boundary", async () => {
+  const root = await fixture();
+  await Bun.write(`${root}/engineering/feature.md`, `---\nlengthwise: 1\nid: F-LIFE\ntype: feature\ntitle: Lifecycle\nlifecycle: draft\nsignificance: S\n---\n`);
+  const started = await WorkbenchSession.start(root); if (!started.ok) throw new Error("fixture failed");
+  const taskArtifact = await started.session.readArtifact("engineering/model.yaml");
+  expect((await started.session.updateEntityLifecycle("TASK-001", "in-progress", taskArtifact.version)).entity.entity.lifecycle).toBe("in-progress");
+  const featureArtifact = await started.session.readArtifact("engineering/feature.md");
+  expect((await started.session.updateEntityLifecycle("F-LIFE", "active", featureArtifact.version)).entity.entity.lifecycle).toBe("active");
+  await expect(started.session.updateEntityLifecycle("F-LIFE", "done", featureArtifact.version)).rejects.toThrow("Unsupported feature lifecycle");
+});
+
 test("invalid saved content remains on disk while the last successful graph is retained and can recover", async () => {
   const root = await fixture();
   const started = await WorkbenchSession.start(root);
@@ -261,19 +272,25 @@ test("server reports an unavailable requested port without disturbing the runnin
 
 test("workflow API assesses, starts, persists, and protects feature runs", async () => {
   const root = await fixture();
-  await Bun.write(`${root}/engineering/feature.yaml`, `lengthwise: 1\nentities:\n  - { id: F-TEST, type: feature, title: Workflow test, lifecycle: draft, significance: S }\n`);
+  await Bun.write(`${root}/engineering/feature.yaml`, `lengthwise: 1\nentities:\n  - { id: F-TEST, type: feature, title: Workflow test, lifecycle: draft, significance: S }\n  - { id: F-DONE, type: feature, title: Completed workflow, lifecycle: complete, significance: S }\n`);
   const result = await startWorkbenchServer(root, { port: 0 });
   if (!result.ok) throw new Error("fixture server did not start"); servers.push(result.server);
+  const retainedCompletedRun = result.workflow.state.start("F-DONE", "specify");
   const assessment = await fetch(`${result.url}/api/workflow/F-TEST`); expect(assessment.status).toBe(200);
   const assessed=(await assessment.json() as any).assessment;
   expect(assessed.specificationEligible).toBe(false);
   expect(assessed.actions.some((action:any)=>action.target.entityId==="F-TEST")).toBe(true);
+  const featureArtifact=await (await fetch(`${result.url}/api/artifact?path=engineering%2Ffeature.yaml`)).json() as any;
+  const lifecycleUpdate=await fetch(`${result.url}/api/entities/F-TEST/lifecycle`,{method:"PUT",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({lifecycle:"active",expectedVersion:featureArtifact.artifact.version})});expect(lifecycleUpdate.status).toBe(200);expect((await lifecycleUpdate.json() as any).entity.entity.lifecycle).toBe("active");
   const rejected = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:"https://untrusted.example"},body:JSON.stringify({featureId:"F-TEST"})}); expect(rejected.status).toBe(403);
   const started = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({featureId:"F-TEST"})}); expect(started.status).toBe(201);
   const body=await started.json() as any; expect(body.run.featureId).toBe("F-TEST");
+  const activeRuns=await fetch(`${result.url}/api/workflows`);expect(activeRuns.status).toBe(200);expect((await activeRuns.json() as any).runs).toEqual([expect.objectContaining({id:body.run.id,featureId:"F-TEST",activity:"specify",state:"running"})]);
+  expect(result.workflow.state.get(retainedCompletedRun.id)?.state).toBe("running");
   const resumed=await fetch(`${result.url}/api/workflow/F-TEST`); expect((await resumed.json() as any).run.id).toBe(body.run.id);
   const untrustedAction=await fetch(`${result.url}/api/workflow/action`,{method:"POST",headers:{"content-type":"application/json",origin:"https://untrusted.example"},body:JSON.stringify({runId:body.run.id,action:"cancel",reason:"no"})});expect(untrustedAction.status).toBe(403);
   const action=await fetch(`${result.url}/api/workflow/action`,{method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({runId:body.run.id,action:"cancel",reason:"HTTP test"})});expect(action.status).toBe(200);expect((await action.json() as any).result.state).toBe("cancelled");
   const terminal=await fetch(`${result.url}/api/workflow/F-TEST`);const terminalBody=await terminal.json() as any;expect(terminalBody.run.state).toBe("cancelled");expect(terminalBody.runHistorical).toBe(true);
+  expect((await (await fetch(`${result.url}/api/workflows`)).json() as any).runs).toEqual([]);
   result.workflow.close();
 });

@@ -2,6 +2,7 @@ import { test, expect, afterEach } from "bun:test";
 import { runCli } from "./main.ts";
 import { createFixtureRepo, removeFixtureRepo } from "../test-support/fixture-repo.ts";
 import { INDEX_DB_PATH } from "../index/sqlite-index.ts";
+import { DEFAULT_WORKBENCH_PORT } from "../workbench/server.ts";
 
 const cleanup: string[] = [];
 afterEach(async () => {
@@ -175,6 +176,18 @@ test("lw serve rejects a directory without Lengthwise configuration", async () =
   expect(result.exitCode).toBe(1);
   expect(result.lines.some((line) => line.includes("config/missing"))).toBe(true);
   expect(result.waitUntil).toBeUndefined();
+});
+
+test("lw serve has a stable default port and validates explicit overrides", async () => {
+  expect(DEFAULT_WORKBENCH_PORT).toBe(7331);
+
+  const invalid = await runCli(["serve", "--port", "random"], "/unused");
+  expect(invalid.exitCode).toBe(1);
+  expect(invalid.lines[0]).toContain("whole number from 1 to 65535");
+
+  const unknown = await runCli(["serve", "--random-port"], "/unused");
+  expect(unknown.exitCode).toBe(1);
+  expect(unknown.lines[0]).toBe("Usage: lw serve [--port <PORT>]");
 });
 
 test("workflow CLI starts, reports, and cancels a persisted run",async()=>{

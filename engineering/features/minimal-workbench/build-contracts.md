@@ -287,6 +287,6 @@ Microcopy and non-semantic styling consistent with the existing workbench.
 - The session and successful graph baseline are in memory and last for the server process lifetime.
 - Artifact versions are SHA-256 content hashes; successful saves use a temporary file and same-directory atomic rename.
 - The HTTP boundary uses request/response JSON endpoints; F-002 demonstrated no need for SSE or WebSockets.
-- `lw serve` selects an available port and binds to `127.0.0.1`; it reports but does not automatically open the URL.
+- `lw serve` binds to the stable default `127.0.0.1:7331`; `--port <PORT>` provides an explicit override. An occupied requested port produces a clear startup failure rather than silently changing the URL. The command reports but does not automatically open the URL.
 - Non-loopback binding exists only as an internal server option used for local development. It is not a supported `lw serve` flag, and remote/cross-machine operation remains outside F-002's trust boundary.
 - The SvelteKit client is emitted as a static production build and served by Bun. Tailwind CSS 4 supplies local Tark-inspired presentation components; Ark UI is used where a suitable behavior primitive is present.

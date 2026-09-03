@@ -59,6 +59,7 @@ export class WorkflowStateStore {
     this.db.query("INSERT INTO workflow_runs VALUES (?,?,?,?,?,?)").run(run.id, featureId, activity, run.state, now, now); return run;
   }
   active(featureId: string): WorkflowRun | undefined { return (this.db.query("SELECT id,feature_id featureId,activity,state,created_at createdAt,updated_at updatedAt FROM workflow_runs WHERE feature_id=? AND state NOT IN ('cancelled','complete')").get(featureId) as WorkflowRun | null) ?? undefined; }
+  activeRuns(): WorkflowRun[] { return this.db.query("SELECT id,feature_id featureId,activity,state,created_at createdAt,updated_at updatedAt FROM workflow_runs WHERE state NOT IN ('cancelled','complete') ORDER BY updated_at DESC,id").all() as WorkflowRun[]; }
   get(id: string): WorkflowRun | undefined { return (this.db.query("SELECT id,feature_id featureId,activity,state,created_at createdAt,updated_at updatedAt FROM workflow_runs WHERE id=?").get(id) as WorkflowRun | null) ?? undefined; }
   update(id: string, activity: WorkflowActivity, state: RunState): WorkflowRun {
     assertActivity(activity); const current = this.get(id); if (!current) throw new Error(`Unknown workflow run ${id}`); if (["cancelled", "complete"].includes(current.state)) throw new Error(`Workflow run ${id} is terminal`);

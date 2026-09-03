@@ -3,12 +3,15 @@ import { ArtifactAccessError } from "./artifact-service.ts";
 import { WorkbenchSession } from "./session.ts";
 import { errorDiagnostic } from "../diagnostics.ts";
 import { WorkflowCoordinator } from "../workflow/coordinator.ts";
+import { ENTITY_LIFECYCLES } from "./lifecycle-service.ts";
 
 export interface WorkbenchServerOptions {
   hostname?: string;
   port?: number;
   uiRoot?: string;
 }
+
+export const DEFAULT_WORKBENCH_PORT = 7331;
 
 export type StartWorkbenchServerResult =
   | { ok: true; server: ReturnType<typeof Bun.serve>; session: WorkbenchSession; workflow: WorkflowCoordinator; url: string }
@@ -44,6 +47,7 @@ export async function startWorkbenchServer(
   const session = started.session;
   const workflow = await WorkflowCoordinator.open(repoRoot);
   const hostname = options.hostname ?? "127.0.0.1";
+  const port = options.port ?? DEFAULT_WORKBENCH_PORT;
   const uiRoot = options.uiRoot ?? resolve(import.meta.dir, "../../workbench-ui/build");
 
   if (!options.uiRoot && !(await Bun.file(resolve(uiRoot, "index.html")).exists())) {
@@ -68,7 +72,7 @@ export async function startWorkbenchServer(
   try {
     server = Bun.serve({
     hostname,
-    port: options.port ?? 0,
+    port,
     async fetch(request) {
       const url = new URL(request.url);
       try {
@@ -87,7 +91,16 @@ export async function startWorkbenchServer(
         if (url.pathname.startsWith("/api/entities/") && request.method === "GET") {
           const id = decodeURIComponent(url.pathname.slice("/api/entities/".length));
           const entity = session.getEntity(id);
-          return entity ? json({ ok: true, entity }) : json({ ok: false, error: { code: "not-found" } }, 404);
+          return entity ? json({ ok: true, entity, lifecycleOptions:ENTITY_LIFECYCLES[entity.entity.type] }) : json({ ok: false, error: { code: "not-found" } }, 404);
+        }
+        if (url.pathname.startsWith("/api/entities/") && url.pathname.endsWith("/lifecycle") && request.method === "PUT") {
+          if (request.headers.get("origin") !== origin) return json({ ok: false, error: { code: "untrusted-origin" } }, 403);
+          const id = decodeURIComponent(url.pathname.slice("/api/entities/".length, -"/lifecycle".length));
+          const body = await request.json() as { lifecycle?: unknown; expectedVersion?: unknown };
+          if (typeof body.lifecycle !== "string" || typeof body.expectedVersion !== "string") return json({ ok: false, error: { code: "invalid-request" } }, 400);
+          const entity=session.getEntity(id)?.entity;const activeRun=entity?.type==="feature"?workflow.state.active(id):undefined;
+          if(entity?.type==="feature"&&body.lifecycle==="complete"&&activeRun){const assessment=await workflow.assess(id);if(!assessment.completionEligible)return json({ok:false,error:{code:"completion-ineligible",message:"Resolve the Feature's workflow blockers before marking it complete"}},409);const updated=await session.updateEntityLifecycle(id,body.lifecycle,body.expectedVersion);await workflow.complete(activeRun.id);return json({ok:true,...updated,run:workflow.state.latest(id)});}
+          return json({ ok: true, ...(await session.updateEntityLifecycle(id, body.lifecycle, body.expectedVersion)) });
         }
         if (url.pathname === "/api/artifact" && request.method === "GET") {
           const path = url.searchParams.get("path");
@@ -103,6 +116,13 @@ export async function startWorkbenchServer(
             return json({ ok: false, error: { code: "invalid-request" } }, 400);
           }
           return json({ ok: true, ...(await session.saveArtifact(body.path, body.content, body.expectedVersion)) });
+        }
+        if (url.pathname === "/api/workflows" && request.method === "GET") {
+          const runs = workflow.state.activeRuns().filter((run) => {
+            const feature = session.getEntity(run.featureId)?.entity;
+            return feature?.type !== "feature" || feature.lifecycle !== "complete";
+          });
+          return json({ ok: true, runs });
         }
         if (url.pathname.startsWith("/api/workflow/") && request.method === "GET") {
           const featureId = decodeURIComponent(url.pathname.slice("/api/workflow/".length));
@@ -156,7 +176,7 @@ export async function startWorkbenchServer(
   } catch (error) {
     return {
       ok: false,
-      diagnostics: [errorDiagnostic("server/start-failed", `Could not start the workbench on ${hostname}:${options.port ?? "automatic port"}: ${(error as Error).message}`)],
+      diagnostics: [errorDiagnostic("server/start-failed", `Could not start the workbench on ${hostname}:${port}: ${(error as Error).message}`)],
     };
   }
   origin = `http://${hostname}:${server.port}`;
