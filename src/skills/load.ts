@@ -1,5 +1,6 @@
 import { readdir, realpath } from "node:fs/promises";
 import { isAbsolute, posix, relative, resolve, sep } from "node:path";
+import { parser as markdownParser } from "@lezer/markdown";
 import typia from "typia";
 import {
   CANONICAL_SKILL_ENTRYPOINT,
@@ -7,7 +8,7 @@ import {
   SKILL_PROVENANCE_SIDECAR,
   STANDARD_SKILL_IDS,
 } from "./constants.ts";
-import { canonicalSkillDigest } from "./digest.ts";
+import { canonicalSkillDigest, comparePosixRelativePaths } from "./digest.ts";
 import {
   SEMANTIC_ACTION_BINDINGS,
   SKILL_CONTEXT_SLOTS,
@@ -38,7 +39,10 @@ const MANIFEST_FIELDS = new Set([
   "escalations",
 ]);
 const CONTEXT_FIELDS = new Set(["required", "optional"]);
-const LOCAL_MARKDOWN_LINK = /!?(?:\[[^\]]*\])\(([^)]+)\)/g;
+const URI_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+const FILE_URI = /^file:/i;
+const WINDOWS_ABSOLUTE_PATH = /^(?:[a-z]:[\\/]|\\\\)/i;
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
 const validateCanonicalSkillFrontmatter = typia.createValidate<CanonicalSkillFrontmatter>();
 const validateCanonicalSkillManifest = typia.createValidate<CanonicalSkillManifest>();
 
@@ -60,6 +64,62 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isWithinOrSame(root: string, target: string): boolean {
   const child = relative(root, target);
   return child === "" || (child !== ".." && !child.startsWith(`..${sep}`) && !isAbsolute(child));
+}
+
+function decodeUtf8File(
+  packagePath: string,
+  file: CanonicalSkillFile,
+  diagnostics: SkillDiagnostic[],
+  cache: Map<string, string | undefined>,
+): string | undefined {
+  if (cache.has(file.path)) return cache.get(file.path);
+  try {
+    const decoded = utf8Decoder.decode(file.content);
+    cache.set(file.path, decoded);
+    return decoded;
+  } catch {
+    diagnostics.push(
+      diagnostic(
+        packagePath,
+        "skill/invalid-text-encoding",
+        `${file.path} must contain valid UTF-8 text.`,
+        file.path,
+      ),
+    );
+    cache.set(file.path, undefined);
+    return undefined;
+  }
+}
+
+function markdownDestinations(markdown: string): string[] {
+  const destinations: string[] = [];
+  const cursor = markdownParser.parse(markdown).cursor();
+  do {
+    if (cursor.name === "URL") destinations.push(markdown.slice(cursor.from, cursor.to));
+  } while (cursor.next());
+  return [...new Set(destinations)];
+}
+
+function unescapeMarkdownDestination(value: string): string {
+  const escapable = new Set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
+  let result = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]!;
+    if (character === "\\" && index + 1 < value.length && escapable.has(value[index + 1]!)) {
+      result += value[index + 1]!;
+      index += 1;
+    } else {
+      result += character;
+    }
+  }
+  return result;
+}
+
+function stripQueryAndFragment(destination: string): string {
+  const query = destination.indexOf("?");
+  const fragment = destination.indexOf("#");
+  const cut = [query, fragment].filter((index) => index >= 0).sort((left, right) => left - right)[0];
+  return cut === undefined ? destination : destination.slice(0, cut);
 }
 
 function extractFrontmatter(text: string): { yaml: string; body: string } | undefined {
@@ -327,7 +387,7 @@ async function collectPackageFiles(packagePath: string, diagnostics: SkillDiagno
 
   async function visit(directory: string): Promise<void> {
     const entries = await readdir(directory, { withFileTypes: true });
-    entries.sort((left, right) => left.name.localeCompare(right.name));
+    entries.sort((left, right) => comparePosixRelativePaths(left.name, right.name));
     for (const entry of entries) {
       const absolute = resolve(directory, entry.name);
       const relativePath = relative(canonicalRoot, absolute).split(sep).join("/");
@@ -370,23 +430,41 @@ function validateMarkdownReferences(
   packagePath: string,
   files: readonly CanonicalSkillFile[],
   diagnostics: SkillDiagnostic[],
+  decodedFiles: Map<string, string | undefined>,
 ): void {
   const existing = new Set(files.map((file) => file.path));
   for (const file of files.filter((candidate) => candidate.path.toLowerCase().endsWith(".md"))) {
-    const markdown = new TextDecoder().decode(file.content);
-    for (const match of markdown.matchAll(LOCAL_MARKDOWN_LINK)) {
-      const raw = match[1]?.trim();
-      if (!raw || raw.startsWith("#") || /^(?:https?|mailto|data):/i.test(raw)) continue;
-      const destination = raw.startsWith("<") && raw.endsWith(">") ? raw.slice(1, -1) : raw.split(/\s+/)[0]!;
-      const withoutFragment = destination.split("#", 1)[0]!.split("?", 1)[0]!;
-      if (!withoutFragment) continue;
-      if (posix.isAbsolute(withoutFragment)) {
+    const markdown = decodeUtf8File(packagePath, file, diagnostics, decodedFiles);
+    if (markdown === undefined) continue;
+    for (const raw of markdownDestinations(markdown)) {
+      const enclosed = raw.startsWith("<") && raw.endsWith(">");
+      const destination = unescapeMarkdownDestination(enclosed ? raw.slice(1, -1) : raw).trim();
+      if (!destination || destination.startsWith("#")) continue;
+      if (WINDOWS_ABSOLUTE_PATH.test(destination) || FILE_URI.test(destination)) {
         diagnostics.push(
           diagnostic(packagePath, "skill/support-path-escape", `${file.path} references absolute path "${destination}".`),
         );
         continue;
       }
-      const resolved = posix.normalize(posix.join(posix.dirname(file.path), withoutFragment));
+      if (URI_SCHEME.test(destination) || destination.startsWith("//")) continue;
+      const unresolved = stripQueryAndFragment(destination);
+      if (!unresolved) continue;
+      let localPath: string;
+      try {
+        localPath = decodeURIComponent(unresolved);
+      } catch {
+        diagnostics.push(
+          diagnostic(packagePath, "skill/invalid-support-path", `${file.path} references invalid URL path "${destination}".`),
+        );
+        continue;
+      }
+      if (posix.isAbsolute(localPath) || WINDOWS_ABSOLUTE_PATH.test(localPath)) {
+        diagnostics.push(
+          diagnostic(packagePath, "skill/support-path-escape", `${file.path} references absolute path "${destination}".`),
+        );
+        continue;
+      }
+      const resolved = posix.normalize(posix.join(posix.dirname(file.path), localPath));
       if (resolved === ".." || resolved.startsWith("../")) {
         diagnostics.push(
           diagnostic(packagePath, "skill/support-path-escape", `${file.path} references path outside its package: "${destination}".`),
@@ -414,6 +492,7 @@ async function loadPackage(packagePath: string, directoryName: string): Promise<
     };
   }
   const byPath = new Map(files.map((file) => [file.path, file]));
+  const decodedFiles = new Map<string, string | undefined>();
   const entrypoint = byPath.get(CANONICAL_SKILL_ENTRYPOINT);
   const manifestFile = byPath.get(LENGTHWISE_SKILL_MANIFEST);
   if (!entrypoint) {
@@ -423,9 +502,8 @@ async function loadPackage(packagePath: string, directoryName: string): Promise<
     diagnostics.push(diagnostic(packagePath, "skill/missing-manifest", `Missing ${LENGTHWISE_SKILL_MANIFEST}.`));
   }
 
-  const parsedFrontmatter = entrypoint
-    ? parseFrontmatter(packagePath, new TextDecoder().decode(entrypoint.content), diagnostics)
-    : {};
+  const entrypointText = entrypoint ? decodeUtf8File(packagePath, entrypoint, diagnostics, decodedFiles) : undefined;
+  const parsedFrontmatter = entrypointText !== undefined ? parseFrontmatter(packagePath, entrypointText, diagnostics) : {};
   if (parsedFrontmatter.declaredId && parsedFrontmatter.declaredId !== directoryName) {
     diagnostics.push(
       diagnostic(
@@ -436,10 +514,11 @@ async function loadPackage(packagePath: string, directoryName: string): Promise<
       ),
     );
   }
-  const parsedManifest = manifestFile
-    ? parseManifest(packagePath, new TextDecoder().decode(manifestFile.content), diagnostics)
+  const manifestText = manifestFile ? decodeUtf8File(packagePath, manifestFile, diagnostics, decodedFiles) : undefined;
+  const parsedManifest = manifestText !== undefined
+    ? parseManifest(packagePath, manifestText, diagnostics)
     : { bindings: [] as string[] };
-  validateMarkdownReferences(packagePath, files, diagnostics);
+  validateMarkdownReferences(packagePath, files, diagnostics, decodedFiles);
 
   const result: PackageLoadResult = {
     declaredId: parsedFrontmatter.declaredId,
@@ -487,7 +566,9 @@ export async function loadCanonicalSkillRegistry(
 
   const diagnostics: SkillDiagnostic[] = [];
   const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  for (const symlink of entries.filter((entry) => entry.isSymbolicLink()).sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const symlink of entries
+    .filter((entry) => entry.isSymbolicLink())
+    .sort((left, right) => comparePosixRelativePaths(left.name, right.name))) {
     diagnostics.push(
       diagnostic(resolve(absoluteRoot, symlink.name), "skill/symlink-unsupported", "Canonical skill roots cannot be symlinks."),
     );
@@ -523,11 +604,10 @@ export async function loadCanonicalSkillRegistry(
     );
   }
 
-  diagnostics.sort((left, right) =>
-    `${left.packagePath}\0${left.code}\0${left.field ?? ""}`.localeCompare(
-      `${right.packagePath}\0${right.code}\0${right.field ?? ""}`,
-    ),
-  );
+  diagnostics.sort((left, right) => comparePosixRelativePaths(
+    `${left.packagePath}\0${left.code}\0${left.field ?? ""}`,
+    `${right.packagePath}\0${right.code}\0${right.field ?? ""}`,
+  ));
   if (diagnostics.length > 0) return { ok: false, diagnostics };
 
   const skills = new Map(loaded.flatMap((result) => (result.skill ? [[result.skill.id, result.skill] as const] : [])));

@@ -166,6 +166,20 @@ entities:
   - { id: PLAN-FULL, type: plan, title: Plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-FULL }] }
 `;
 
+test("material accepted Build Contract edits invalidate prior gate approval",async()=>{
+  const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":FULL_MODEL});roots.push(root);
+  const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");
+  const contract=renderContractArtifact(built.graph,["TASK-FULL"]);await Bun.write(`${root}/engineering/contracts.yaml`,contract);
+  const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessment=await coordinator.assess("F-FULL");
+  await coordinator.approve(run.id,"specification",assessment.gates.specification.fingerprint);assessment=await coordinator.assess("F-FULL");
+  await coordinator.approve(run.id,"build-contract",assessment.gates["build-contract"].fingerprint);const approved=await coordinator.assess("F-FULL");
+  await Bun.write(`${root}/engineering/contracts.yaml`,contract.replace("Build Contract for TASK-FULL","Materially revised Build Contract for TASK-FULL"));
+  const revised=await coordinator.assess("F-FULL");
+  expect(revised.tasks[0]).toMatchObject({contractStale:false,changedInputs:[]});
+  expect(revised.gates["build-contract"].fingerprint).not.toBe(approved.gates["build-contract"].fingerprint);
+  expect(revised.gates["build-contract"].approved).toBe(false);coordinator.close();
+});
+
 test("handoff, interruption, resume, retry, return verification, completion, and terminal projection converge",async()=>{
   const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":FULL_MODEL});roots.push(root);let built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-FULL"]));
   const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessed=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",assessed.gates.specification.fingerprint);assessed=await coordinator.assess("F-FULL");expect(assessed.actions.some(action=>action.id.startsWith("author-contract:"))).toBe(false);expect(assessed.actions[0]?.id).toBe("review-build-contract");expect(assessed.actions[0]?.target).toEqual({entityId:"BC-TASK-FULL",artifactPath:"engineering/contracts.yaml"});await coordinator.approve(run.id,"build-contract",assessed.gates["build-contract"].fingerprint);assessed=await coordinator.assess("F-FULL");expect(assessed.actions.find(action=>action.id==="handoff:TASK-FULL")?.target).toEqual({entityId:"BC-TASK-FULL",artifactPath:"engineering/contracts.yaml"});

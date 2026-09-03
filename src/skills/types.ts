@@ -140,7 +140,7 @@ export type SkillInstallScope = "project" | "user";
 
 export interface InstalledSkillProvenance {
   provenanceSchemaVersion: 1;
-  digestRuleVersion: 1;
+  digestRuleVersion: number;
   canonicalSkillId: string;
   canonicalSkillVersion: number;
   workflowContractVersion: number;

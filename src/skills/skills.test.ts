@@ -2,7 +2,12 @@ import { afterEach, expect, test } from "bun:test";
 import { symlink, utimes } from "node:fs/promises";
 import { createFixtureRepo, removeFixtureRepo } from "../test-support/fixture-repo.ts";
 import { STANDARD_SKILL_IDS } from "./constants.ts";
-import { canonicalSkillDigest, renderedSkillDigest } from "./digest.ts";
+import {
+  SKILL_DIGEST_RULE,
+  canonicalSkillDigest,
+  comparePosixRelativePaths,
+  renderedSkillDigest,
+} from "./digest.ts";
 import { loadCanonicalSkillRegistry } from "./load.ts";
 import { assessInstalledSkill } from "./provenance.ts";
 import type { CanonicalSkillFile, CurrentRenderedSkillIdentity, InstalledSkillProvenance } from "./types.ts";
@@ -46,6 +51,14 @@ async function fixture(files = standardFiles()): Promise<string> {
 
 async function overwrite(root: string, relativePath: string, content: string): Promise<void> {
   await Bun.write(`${root}/${relativePath}`, content);
+}
+
+async function appendInvalidUtf8(root: string, relativePath: string): Promise<void> {
+  const original = new Uint8Array(await Bun.file(`${root}/${relativePath}`).arrayBuffer());
+  const corrupted = new Uint8Array(original.byteLength + 1);
+  corrupted.set(original);
+  corrupted[corrupted.byteLength - 1] = 0xff;
+  await Bun.write(`${root}/${relativePath}`, corrupted);
 }
 
 function codes(result: Awaited<ReturnType<typeof loadCanonicalSkillRegistry>>): string[] {
@@ -100,6 +113,21 @@ test("canonical identity is deterministic and covers methodology support files",
   }
 });
 
+// AC-048-04, AC-048-05, AC-NFR-026-04
+test("canonical path ordering is explicit UTF-8 byte order rather than host collation", () => {
+  const paths = ["å.md", "z.md", "ä.md", "a.md"];
+  const encoder = new TextEncoder();
+
+  expect(SKILL_DIGEST_RULE).toMatchObject({
+    version: 2,
+    pathOrder: "ascending-utf8-bytewise-posix-relative-path",
+  });
+  expect(paths.sort(comparePosixRelativePaths)).toEqual(["a.md", "z.md", "ä.md", "å.md"]);
+  expect(canonicalSkillDigest(paths.map((path) => ({ path, content: encoder.encode(path) })))).toBe(
+    "sha256:2364c4096c3b2ddb92548bdfe4de25dd181b1468a5d6b0bd6709a20a37097433",
+  );
+});
+
 // AC-040-01, AC-040-02, AC-NFR-031-01
 test("rejects malformed packages, unsupported contracts, and missing support files", async () => {
   const root = await fixture();
@@ -119,6 +147,66 @@ test("rejects malformed packages, unsupported contracts, and missing support fil
   ]));
   expect(result.diagnostics.every((item) => item.packagePath.startsWith(root))).toBe(true);
   expect(result.diagnostics.some((item) => item.field === "workflowContractVersion")).toBe(true);
+});
+
+// AC-039-03, AC-040-01
+test("validates inline and reference-definition support-file links", async () => {
+  const files = standardFiles();
+  files["capture-feature/SKILL.md"] = `---\nname: capture-feature\ndescription: Test.\n---\n[Inline](references/inline-missing.md)\n\n[Reference][details]\n\n[details]: references/reference-missing.md\n`;
+  delete files["capture-feature/references/details.md"];
+  const root = await fixture(files);
+
+  const result = await loadCanonicalSkillRegistry(root);
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics.filter((item) => item.code === "skill/missing-support-file").map((item) => item.message)).toEqual([
+    expect.stringContaining("references/inline-missing.md"),
+    expect.stringContaining("references/reference-missing.md"),
+  ]);
+});
+
+// AC-039-03, AC-040-01: support validation follows CommonMark syntax rather than matching link-like text.
+test("accepts valid CommonMark destinations and ignores code or escaped examples", async () => {
+  const files = standardFiles();
+  files["capture-feature/SKILL.md"] = `---
+name: capture-feature
+description: Test.
+---
+[Angle URL](<https://example.com/docs>)
+[Network URL](//example.com/docs)
+[Parenthesized](references/detail(v2).md)
+[Spaced][details]
+
+[details]: <references/detail file.md>
+
+\`[Inline code](missing-inline.md)\`
+\\[Escaped syntax](missing-escaped.md)
+
+~~~markdown
+[Fenced example](missing-fenced.md)
+[Reference example]: missing-reference.md
+~~~
+`;
+  delete files["capture-feature/references/details.md"];
+  files["capture-feature/references/detail(v2).md"] = "Parenthesized support file.\n";
+  files["capture-feature/references/detail file.md"] = "Spaced support file.\n";
+  const root = await fixture(files);
+
+  expect(await loadCanonicalSkillRegistry(root)).toMatchObject({ ok: true, diagnostics: [] });
+});
+
+// AC-040-01
+test("rejects non-UTF-8 canonical text files instead of decoding replacement characters", async () => {
+  for (const relativePath of ["capture-feature/SKILL.md", "capture-feature/lengthwise.yaml", "capture-feature/references/details.md"]) {
+    const root = await fixture();
+    await appendInvalidUtf8(root, relativePath);
+
+    const result = await loadCanonicalSkillRegistry(root);
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: "skill/invalid-text-encoding",
+      field: relativePath.slice("capture-feature/".length),
+    }));
+  }
 });
 
 // AC-040-01
@@ -176,7 +264,16 @@ test("enforces the bundled registry inventory and unique semantic ownership", as
 // AC-040-01, AC-NFR-026-01
 test("rejects package path escapes, symlinks, and canonical provenance sidecars", async () => {
   const root = await fixture();
-  await overwrite(root, "capture-feature/SKILL.md", `---\nname: capture-feature\ndescription: Test.\n---\n[escape](../outside.md)\n`);
+  await overwrite(root, "capture-feature/SKILL.md", `---
+name: capture-feature
+description: Test.
+---
+[parent escape](../outside.md)
+[encoded escape](%2e%2e/outside.md)
+[Windows absolute](C:/outside.md)
+[encoded Windows absolute](C%3A/outside.md)
+[file URI](file:///outside.md)
+`);
   await overwrite(root, "capture-feature/.lengthwise-provenance.json", "{}\n");
   await overwrite(root, "outside.md", "outside\n");
   await symlink(`${root}/outside.md`, `${root}/capture-feature/references/link.md`);
@@ -187,11 +284,12 @@ test("rejects package path escapes, symlinks, and canonical provenance sidecars"
     "skill/symlink-unsupported",
     "skill/reserved-provenance-file",
   ]));
+  expect(result.diagnostics.filter((item) => item.code === "skill/support-path-escape")).toHaveLength(5);
 });
 
 const installed: InstalledSkillProvenance = {
   provenanceSchemaVersion: 1,
-  digestRuleVersion: 1,
+  digestRuleVersion: 2,
   canonicalSkillId: "specify-feature",
   canonicalSkillVersion: 3,
   workflowContractVersion: 1,
@@ -221,6 +319,7 @@ test("distinguishes installation modification, canonical staleness, renderer sta
   expect(assessInstalledSkill(installed, { ...current, rendererVersion: "codex-renderer@3", renderedDigest: "sha256:new-render" }, installed.renderedDigest).status).toBe("stale-renderer");
   expect(assessInstalledSkill(installed, { ...current, provider: "claude" }, installed.renderedDigest).status).toBe("incompatible");
   expect(assessInstalledSkill({ ...installed, workflowContractVersion: 99 }, current, installed.renderedDigest).status).toBe("incompatible");
+  expect(assessInstalledSkill({ ...installed, digestRuleVersion: 1 }, current, installed.renderedDigest).status).toBe("incompatible");
 
   const otherInstance = { ...installed, installedAt: "2030-01-01T00:00:00.000Z", destination: "/other/place" };
   expect(assessInstalledSkill(otherInstance, current, installed.renderedDigest).status).toBe("current");

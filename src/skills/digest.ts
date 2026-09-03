@@ -2,15 +2,30 @@ import { SKILL_PROVENANCE_SIDECAR } from "./constants.ts";
 import type { CanonicalSkillFile } from "./types.ts";
 
 export const SKILL_DIGEST_RULE = {
-  version: 1 as const,
+  version: 2 as const,
   algorithm: "sha256" as const,
-  pathOrder: "ascending-posix-relative-path" as const,
+  pathOrder: "ascending-utf8-bytewise-posix-relative-path" as const,
   contentEncoding: "raw-file-bytes" as const,
   excludedPaths: [SKILL_PROVENANCE_SIDECAR] as const,
 };
 
 const encoder = new TextEncoder();
 const excludedPaths = new Set<string>(SKILL_DIGEST_RULE.excludedPaths);
+
+/**
+ * Compares POSIX relative paths by their UTF-8 bytes. Unlike localeCompare,
+ * this order is independent of the host locale and JavaScript runtime.
+ */
+export function comparePosixRelativePaths(left: string, right: string): number {
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  const sharedLength = Math.min(leftBytes.byteLength, rightBytes.byteLength);
+  for (let index = 0; index < sharedLength; index += 1) {
+    const difference = leftBytes[index]! - rightBytes[index]!;
+    if (difference !== 0) return difference;
+  }
+  return leftBytes.byteLength - rightBytes.byteLength;
+}
 
 function updateFramed(hasher: Bun.CryptoHasher, value: Uint8Array): void {
   hasher.update(encoder.encode(`${value.byteLength}:`));
@@ -31,7 +46,7 @@ export function skillContentDigest(
 
   for (const file of [...files]
     .filter((candidate) => !excludedPaths.has(candidate.path))
-    .sort((left, right) => left.path.localeCompare(right.path))) {
+    .sort((left, right) => comparePosixRelativePaths(left.path, right.path))) {
     updateFramed(hasher, encoder.encode(file.path));
     updateFramed(hasher, file.content);
   }

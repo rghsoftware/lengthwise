@@ -5,23 +5,19 @@ entities:
     title: Define canonical skill package registry validation and identity
     lifecycle: planned
     relationships:
-      - { type: implements, to: REQ-039 }
       - { type: implements, to: REQ-040 }
-      - { type: implements, to: REQ-041 }
-      - { type: implements, to: REQ-048 }
-      - { type: implements, to: NFR-026 }
-      - { type: implements, to: NFR-029 }
-      - { type: implements, to: NFR-031 }
 
   - id: TASK-037
     type: task
     title: Author feature definition planning and readiness skills
     lifecycle: planned
     relationships:
+      - { type: implements, to: REQ-039 }
       - { type: implements, to: REQ-041 }
       - { type: implements, to: REQ-052 }
       - { type: implements, to: NFR-025 }
       - { type: implements, to: NFR-028 }
+      - { type: implements, to: NFR-029 }
       - { type: implements, to: NFR-030 }
       - { type: depends-on, to: TASK-036 }
 
@@ -30,6 +26,7 @@ entities:
     title: Author implementation review verification and reconciliation skills
     lifecycle: planned
     relationships:
+      - { type: implements, to: REQ-039 }
       - { type: implements, to: REQ-041 }
       - { type: implements, to: REQ-049 }
       - { type: implements, to: REQ-050 }
@@ -39,6 +36,7 @@ entities:
       - { type: implements, to: REQ-057 }
       - { type: implements, to: NFR-025 }
       - { type: implements, to: NFR-028 }
+      - { type: implements, to: NFR-029 }
       - { type: implements, to: NFR-030 }
       - { type: depends-on, to: TASK-036 }
 

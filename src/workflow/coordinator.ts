@@ -123,7 +123,16 @@ export class WorkflowCoordinator {
     const plans=graph.entitiesOfType("plan").filter(p=>graph.outgoingRelationships(p.id).some(r=>r.type==="contains"&&taskEntities.some(t=>t.id===r.to)));
     if(rigor.taskPlan==="required"&&(tasks.length===0||plans.length===0)) planBlockers.push(blocker("missing-task-plan","Effective rigor requires a Plan containing the Feature's implementation tasks",featureId,feature.source.artifactPath));
     for(const t of tasks){if(!t.contract)planBlockers.push(blocker("missing-contract",`${t.id} needs an accepted BuildContract`,t.id,t.artifactPath));else if(t.contractStale)planBlockers.push(blocker("stale-contract",`${t.contract} is stale: ${t.changedInputs.map(i=>i.id).join(", ")}`,t.contract,graph.getEntity(t.contract)?.source.artifactPath));}
-    const contractFp=fingerprint({specFp,tasks:tasks.map(t=>({id:t.id,contract:t.contract,stale:t.contractStale,changed:t.changedInputs}))}); const contractApproved=Boolean(run&&this.state.hasFreshEvent(run.id,"build-contract-approved",contractFp));
+    const contractFp=fingerprint({
+      specFp,
+      tasks:tasks.map(t=>({
+        id:t.id,
+        contract:t.contract,
+        contractFingerprint:t.contract?gateSemanticFingerprint(graph.getEntity(t.contract)):undefined,
+        stale:t.contractStale,
+        changed:t.changedInputs,
+      })),
+    }); const contractApproved=Boolean(run&&this.state.hasFreshEvent(run.id,"build-contract-approved",contractFp));
     const verificationBlockers=verifications.filter(v=>!v.satisfied).map(v=>blocker(`evidence-${v.status}`,`${v.id} evidence is ${v.status}${v.missingComplements.length?`; missing ${v.missingComplements.join(", ")}`:""}`,v.id,v.artifactPath));
     const verificationFp=fingerprint({contractFp,verifications}); const verificationApproved=Boolean(run&&this.state.hasFreshEvent(run.id,"verification-approved",verificationFp));
     const requiredGates=new Set(rigor.humanApproval.map(g=>g==="buildContract"?"build-contract":g) as WorkflowGate[]);
