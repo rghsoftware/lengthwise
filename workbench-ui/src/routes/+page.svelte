@@ -350,7 +350,7 @@
         <h2>Feature workflow</h2>
         <div class="workflow-card">
           <div class="workflow-heading"><div><span class="eyebrow">Current activity</span><strong>{workflowRun ? `${workflowRunHistorical ? "Historical " : ""}${workflowRun.activity}` : "No workflow run"}</strong></div><Badge tone={workflowRunHistorical ? "neutral" : focusBlocker ? "warning" : workflowRun ? "good" : "neutral"}>{workflowRun?.state ?? "idle"}</Badge></div>
-          {#if !workflowRun || workflowRunHistorical}<Button on:click={startWorkflow}>Start workflow</Button>{/if}
+          {#if (!workflowRun || workflowRunHistorical) && detail.entity.lifecycle!=="complete"}<Button on:click={startWorkflow}>Start workflow</Button>{/if}
           {#if !primaryAddressesFocus}<section class:ready={!focusBlocker} class="workflow-focus">
             <span class="eyebrow">{focusBlocker ? "Needs attention" : "Ready to progress"}</span>
             <strong>{focusBlocker?.message ?? (currentGate?.approved ? `${gateName(currentGate)} is complete.` : currentGate?.eligible ? `${gateName(currentGate)} is ready for review.` : "No blocker for the current activity.")}</strong>

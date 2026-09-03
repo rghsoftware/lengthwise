@@ -108,6 +108,7 @@ export class WorkflowCoordinator {
 
   private actionsFor(input:{featureId:string;featurePath:string;featureLifecycle:string;tasks:WorkflowAssessment["tasks"];verifications:WorkflowAssessment["verifications"];gates:WorkflowAssessment["gates"];completionEligible:boolean;reconciliationReasons:WorkflowBlocker[];run?:WorkflowRun}):WorkflowAction[]{
     const actions:WorkflowAction[]=[]; const add=(action:WorkflowAction)=>actions.push(action);
+    if(input.run?.state==="complete"&&input.featureLifecycle==="complete")return actions;
     if(input.run&&!['cancelled','complete'].includes(input.run.state)&&input.run.activity!=="complete"&&input.featureLifecycle==="complete")return [
       {id:"reopen-feature",kind:"author",label:`Reopen ${input.featureId} and continue`,eligible:true,requiredInputs:["Human decision that additional Feature work is intended"],expectedOutputs:["Feature lifecycle active","Existing workflow run retained"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:[]},
       {id:"cancel-stale-run",kind:"cancel",label:`Keep ${input.featureId} complete and close the run`,eligible:true,requiredInputs:["Human decision that the Feature remains complete"],expectedOutputs:["Workflow run cancelled and retained in history"],target:{entityId:input.featureId,artifactPath:input.featurePath},blockers:[]},

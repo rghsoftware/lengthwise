@@ -7,7 +7,7 @@ lifecycle: accepted
 
 # F-003 Verification and Closeout Review
 
-> **Reopened 2026-09-02:** The original closeout evidence predates material workflow-semantic and workbench changes. This historical review is retained, but F-003 remains active until current automated Evidence and a new moderated workbench evaluation satisfy the revised implementation.
+> **Reverified 2026-09-02:** The reopened implementation received fresh automated Evidence at commit `861b33f` and a completed repository-owner usability evaluation. The historical review remains retained for provenance.
 
 ## Review disposition
 
@@ -26,4 +26,4 @@ F-003 is **accepted for completion**. Automated verification and repository-owne
 
 ## Human review disposition
 
-The repository owner reviewed the workbench on a 1440p display and accepted the corrected interaction. Blocking findings are persistently discoverable and source-addressable, affected entities are visibly marked, and workflow actions and relationships are prioritized over duplicate authored metadata. The review feedback has been reconciled into the implementation and recorded as `EVID-F003-MANUAL-001`.
+The repository owner iteratively reviewed the live workbench and accepted the final interaction. The evaluation covered active-workflow visibility, lifecycle controls, gate and Build Contract review, handoff/return semantics, action guidance, entity navigation, duplication reduction, collapsible navigation, and pinned editor guidance. The completed moderated evaluation is recorded as `EVID-F003-MANUAL-002`; current automated verification is recorded as `EVID-F003-AUTOMATED-003`.

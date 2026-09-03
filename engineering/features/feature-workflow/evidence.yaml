@@ -43,7 +43,7 @@ entities:
   - id: EVID-F003-AUTOMATED-002
     type: evidence
     title: F-003 reopened deterministic workflow verification
-    lifecycle: recorded
+    lifecycle: superseded
     outcome: passed
     result: "TypeScript compilation, 112 Bun tests, production workbench build, lw index, and lw check passed on 2026-09-02. Coverage includes semantic approval invalidation, terminal projections, run/action-scoped idempotency, symlink-safe capture, target-specific multi-task waits, handoff/return, interruption/resume/retry, cancellation, reconciliation, completion, workflow CLI, and HTTP action authorization."
     applicability: "The current F-003 working tree after commit 55990b6, including the 2026-09-02 blocker reconciliation changes."
@@ -86,3 +86,46 @@ entities:
       - { type: supports, to: VER-026 }
       - { type: supports, to: VER-029 }
       - { type: supports, to: VER-031 }
+  - id: EVID-F003-AUTOMATED-003
+    type: evidence
+    title: F-003 final automated verification
+    lifecycle: recorded
+    outcome: passed
+    result: "TypeScript compilation, 117 Bun tests, the production workbench build, lw index, and lw check passed on 2026-09-02. The index contained 373 entities and 912 relationships, and the Project Graph reported no findings."
+    applicability: "The current F-003 working tree based on commit 861b33f, including completed workflow semantics, repository-owner-driven workbench refinements, and the final terminal-action projection correction."
+    contextFingerprints:
+      VER-022: f671fd04bdaa89d3
+      VER-023: fccf7191d2c16b32
+      VER-024: dce5276c6ad8ade1
+      VER-025: 5712230521aa0e76
+      VER-026: 5251348c334c1182
+      VER-027: 319f591e97b072a3
+      VER-028: a8d7b0f3652578c0
+      VER-029: adac8572689c8fa8
+      VER-030: 4d97bce28d6805dd
+      VER-031: 9865c8ca1acdb6f
+      VER-032: 2a66c2a5f6daaa5f
+    relationships:
+      - { type: supports, to: VER-022 }
+      - { type: supports, to: VER-023 }
+      - { type: supports, to: VER-024 }
+      - { type: supports, to: VER-025 }
+      - { type: supports, to: VER-026 }
+      - { type: supports, to: VER-027 }
+      - { type: supports, to: VER-028 }
+      - { type: supports, to: VER-029 }
+      - { type: supports, to: VER-030 }
+      - { type: supports, to: VER-031 }
+      - { type: supports, to: VER-032 }
+  - id: EVID-F003-MANUAL-002
+    type: evidence
+    title: F-003 completed repository-owner usability evaluation
+    lifecycle: recorded
+    outcome: passed
+    kind: moderated-human-usability-evaluation
+    result: "The repository owner iteratively evaluated the live Feature Workflow workbench and accepted the reconciled experience after verifying global active-workflow visibility, lifecycle controls, two-step gate review, Build Contract review targeting, implementation handoff and return guidance, actionable entity links, consolidated blocker/action presentation, guided authoring, collapsible navigation, and pinned editor guidance. The owner explicitly authorized VER-033 as complete and verified."
+    applicability: "The current F-003 workbench implementation and VER-033 usability criteria based on commit 861b33f, reviewed and accepted on 2026-09-02."
+    contextFingerprints:
+      VER-033: 64c1c5afabde7ac5
+    relationships:
+      - { type: supports, to: VER-033 }
