@@ -145,3 +145,70 @@ entities:
       - { type: governs, to: REQ-034 }
       - { type: governs, to: REQ-035 }
       - { type: governs, to: REQ-036 }
+  - id: DR-029
+    type: decision
+    title: Canonical engineering skills use one provider-portable package tree
+    lifecycle: accepted
+    authority: LOCKED
+    decision: "Maintain each standard engineering skill as one canonical Agent Skills-compatible package whose SKILL.md is the primary entry point, whose lengthwise.yaml contains only typed Lengthwise contracts, and whose support files may carry progressively loaded methodology; provider renderers may change packaging but may not fork behavior without an accepted capability divergence."
+    relationships:
+      - { type: governs, to: F-004 }
+      - { type: governs, to: REQ-039 }
+      - { type: governs, to: REQ-040 }
+      - { type: governs, to: REQ-041 }
+      - { type: governs, to: REQ-044 }
+      - { type: governs, to: REQ-045 }
+      - { type: governs, to: NFR-025 }
+      - { type: governs, to: NFR-026 }
+      - { type: governs, to: NFR-029 }
+  - id: DR-030
+    type: decision
+    title: Provider skill installations are scoped derived artifacts
+    lifecycle: accepted
+    authority: LOCKED
+    decision: "Treat provider-installed skills as provenance-tracked derived artifacts, support project and user scopes with project scope as the default, load only bundled standard skills in F-004, and make install, update, diagnosis, and removal path-safe and non-destructive."
+    relationships:
+      - { type: governs, to: F-004 }
+      - { type: governs, to: REQ-046 }
+      - { type: governs, to: REQ-047 }
+      - { type: governs, to: REQ-048 }
+      - { type: governs, to: NFR-027 }
+      - { type: governs, to: NFR-031 }
+  - id: DR-031
+    type: decision
+    title: Semantic workflow actions expose bounded manual skill handoffs
+    lifecycle: accepted
+    authority: LOCKED
+    decision: "Bind AI-capable semantic workflow actions to canonical skill identities and directly usable bounded task packages so an operator can use an installed skill manually and return a structured outcome; skill discovery and availability create neither applicability nor engineering authority."
+    relationships:
+      - { type: governs, to: F-004 }
+      - { type: governs, to: REQ-042 }
+      - { type: governs, to: REQ-043 }
+      - { type: governs, to: REQ-054 }
+      - { type: governs, to: NFR-028 }
+      - { type: governs, to: NFR-032 }
+  - id: DR-032
+    type: decision
+    title: Implementation outcomes are lossless operational self-assessments
+    lifecycle: accepted
+    authority: LOCKED
+    decision: "Preserve one validated structured implementation-return contract across supported interfaces; omissions remain unassessed, claims are not Evidence, qualifying implementation-time verification results may separately become Evidence, and absent Evidence alone creates neither implementation retry nor satisfaction."
+    relationships:
+      - { type: governs, to: F-004 }
+      - { type: governs, to: REQ-049 }
+      - { type: governs, to: REQ-050 }
+      - { type: governs, to: REQ-051 }
+      - { type: governs, to: REQ-055 }
+      - { type: governs, to: REQ-056 }
+      - { type: governs, to: REQ-057 }
+      - { type: governs, to: NFR-033 }
+  - id: DR-033
+    type: decision
+    title: Engineering methodology requires representative real skill exercises
+    lifecycle: accepted
+    authority: LOCKED
+    decision: "Evaluate F-004 through distinct deterministic packaging evidence, mocked workflow-processing fixtures, and representative manual exercises with installed provider skills and human engineering review; structural parsing and fabricated model output cannot alone establish methodology quality."
+    relationships:
+      - { type: governs, to: F-004 }
+      - { type: governs, to: REQ-053 }
+      - { type: governs, to: NFR-030 }

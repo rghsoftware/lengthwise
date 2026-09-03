@@ -19,3 +19,8 @@ entities:
   - { id: R-005, type: roadmap-item, title: Implementer Execution, lifecycle: planned }
   - { id: R-006, type: roadmap-item, title: Parallel Workspaces, lifecycle: planned }
   - { id: R-007, type: roadmap-item, title: Multi-machine evaluation, lifecycle: planned }
+  - id: R-008
+    type: roadmap-item
+    title: Engineering Skills
+    lifecycle: active
+    relationships: [{ type: realized-by, to: F-004 }]

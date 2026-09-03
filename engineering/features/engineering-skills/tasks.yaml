@@ -1,0 +1,160 @@
+lengthwise: 1
+entities:
+  - id: TASK-036
+    type: task
+    title: Define canonical skill package registry validation and identity
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-039 }
+      - { type: implements, to: REQ-040 }
+      - { type: implements, to: REQ-041 }
+      - { type: implements, to: REQ-048 }
+      - { type: implements, to: NFR-026 }
+      - { type: implements, to: NFR-029 }
+      - { type: implements, to: NFR-031 }
+
+  - id: TASK-037
+    type: task
+    title: Author feature definition planning and readiness skills
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-041 }
+      - { type: implements, to: REQ-052 }
+      - { type: implements, to: NFR-025 }
+      - { type: implements, to: NFR-028 }
+      - { type: implements, to: NFR-030 }
+      - { type: depends-on, to: TASK-036 }
+
+  - id: TASK-038
+    type: task
+    title: Author implementation review verification and reconciliation skills
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-041 }
+      - { type: implements, to: REQ-049 }
+      - { type: implements, to: REQ-050 }
+      - { type: implements, to: REQ-051 }
+      - { type: implements, to: REQ-052 }
+      - { type: implements, to: REQ-056 }
+      - { type: implements, to: REQ-057 }
+      - { type: implements, to: NFR-025 }
+      - { type: implements, to: NFR-028 }
+      - { type: implements, to: NFR-030 }
+      - { type: depends-on, to: TASK-036 }
+
+  - id: TASK-039
+    type: task
+    title: Bind semantic workflow actions and project bounded task packages
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-042 }
+      - { type: implements, to: REQ-043 }
+      - { type: implements, to: REQ-054 }
+      - { type: implements, to: NFR-028 }
+      - { type: implements, to: NFR-032 }
+      - { type: implements, to: NFR-033 }
+      - { type: depends-on, to: TASK-037 }
+      - { type: depends-on, to: TASK-038 }
+
+  - id: TASK-040
+    type: task
+    title: Unify structured implementation return and evidence aware review semantics
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-049 }
+      - { type: implements, to: REQ-050 }
+      - { type: implements, to: REQ-051 }
+      - { type: implements, to: REQ-055 }
+      - { type: implements, to: REQ-056 }
+      - { type: implements, to: REQ-057 }
+      - { type: implements, to: NFR-033 }
+      - { type: depends-on, to: TASK-039 }
+
+  - id: TASK-041
+    type: task
+    title: Implement Codex and Claude renderers with portable provenance
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-044 }
+      - { type: implements, to: REQ-045 }
+      - { type: implements, to: REQ-048 }
+      - { type: implements, to: NFR-025 }
+      - { type: implements, to: NFR-026 }
+      - { type: implements, to: NFR-029 }
+      - { type: implements, to: NFR-031 }
+      - { type: implements, to: NFR-032 }
+      - { type: depends-on, to: TASK-036 }
+
+  - id: TASK-042
+    type: task
+    title: Implement safe scoped skill install diagnosis and removal
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-046 }
+      - { type: implements, to: REQ-047 }
+      - { type: implements, to: REQ-048 }
+      - { type: implements, to: NFR-026 }
+      - { type: implements, to: NFR-027 }
+      - { type: implements, to: NFR-031 }
+      - { type: implements, to: NFR-033 }
+      - { type: depends-on, to: TASK-041 }
+
+  - id: TASK-043
+    type: task
+    title: Expose the usable manual skill handoff loop
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-042 }
+      - { type: implements, to: REQ-043 }
+      - { type: implements, to: REQ-054 }
+      - { type: implements, to: REQ-055 }
+      - { type: implements, to: NFR-032 }
+      - { type: implements, to: NFR-033 }
+      - { type: depends-on, to: TASK-040 }
+      - { type: depends-on, to: TASK-042 }
+
+  - id: TASK-044
+    type: task
+    title: Complete deterministic package installer and workflow verification
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-040 }
+      - { type: implements, to: REQ-044 }
+      - { type: implements, to: REQ-045 }
+      - { type: implements, to: REQ-046 }
+      - { type: implements, to: REQ-047 }
+      - { type: implements, to: REQ-048 }
+      - { type: implements, to: REQ-053 }
+      - { type: implements, to: REQ-054 }
+      - { type: implements, to: REQ-055 }
+      - { type: implements, to: REQ-056 }
+      - { type: implements, to: REQ-057 }
+      - { type: implements, to: NFR-027 }
+      - { type: implements, to: NFR-031 }
+      - { type: implements, to: NFR-033 }
+      - { type: depends-on, to: TASK-043 }
+
+  - id: TASK-045
+    type: task
+    title: Run representative real skill exercises and human methodology review
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-049 }
+      - { type: implements, to: REQ-050 }
+      - { type: implements, to: REQ-051 }
+      - { type: implements, to: REQ-053 }
+      - { type: implements, to: REQ-054 }
+      - { type: implements, to: REQ-056 }
+      - { type: implements, to: REQ-057 }
+      - { type: implements, to: NFR-025 }
+      - { type: implements, to: NFR-030 }
+      - { type: depends-on, to: TASK-044 }
+
+  - id: TASK-046
+    type: task
+    title: Dogfood reconcile and review F-004 readiness
+    lifecycle: planned
+    relationships:
+      - { type: implements, to: REQ-053 }
+      - { type: implements, to: NFR-030 }
+      - { type: depends-on, to: TASK-045 }

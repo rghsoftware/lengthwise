@@ -1,0 +1,426 @@
+lengthwise: 1
+entities:
+  - id: REQ-039
+    type: requirement
+    title: Maintain canonical engineering skills
+    lifecycle: accepted
+    statement: Lengthwise shall maintain each bundled engineering skill as one canonical Agent Skills-compatible package containing provider-neutral methodology, minimal structured Lengthwise metadata, and optional support files.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-039-01 }
+      - { type: has-acceptance-criterion, to: AC-039-02 }
+      - { type: has-acceptance-criterion, to: AC-039-03 }
+  - { id: AC-039-01, type: acceptance-criterion, lifecycle: accepted, statement: "Each canonical skill has one authoritative package tree for Codex, Claude, and future renderers; SKILL.md is its primary methodology entry point and provider renderers do not maintain parallel instruction bodies." }
+  - { id: AC-039-02, type: acceptance-criterion, lifecycle: accepted, statement: "The companion Lengthwise manifest contains only machine-routable skill version, workflow contract, binding, context, outcome, post-check, and escalation metadata and does not repeat the prose methodology, name, or description." }
+  - { id: AC-039-03, type: acceptance-criterion, lifecycle: accepted, statement: "Optional references, scripts, assets, and templates may contain progressively loaded methodology detail, resolve within the canonical skill root, and are included in canonical content identity when they define behavior." }
+
+  - id: REQ-040
+    type: requirement
+    title: Validate canonical skill definitions
+    lifecycle: accepted
+    statement: Lengthwise shall deterministically validate canonical skill structure and structured metadata before rendering or installation.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-040-01 }
+      - { type: has-acceptance-criterion, to: AC-040-02 }
+      - { type: has-acceptance-criterion, to: AC-040-03 }
+  - { id: AC-040-01, type: acceptance-criterion, lifecycle: accepted, statement: "Validation rejects a missing or malformed SKILL.md, invalid portable frontmatter, directory/name mismatch, duplicate canonical ID, invalid version, or missing referenced support file with the responsible package and field identified." }
+  - { id: AC-040-02, type: acceptance-criterion, lifecycle: accepted, statement: "Validation rejects unknown semantic-action bindings, context slots, outcome kinds, post-check identifiers, escalation reasons, and unsupported workflow contract versions." }
+  - { id: AC-040-03, type: acceptance-criterion, lifecycle: accepted, statement: "Structural validation reports no claim that natural-language methodology is complete or effective." }
+
+  - id: REQ-041
+    type: requirement
+    title: Provide the standard engineering skill library
+    lifecycle: accepted
+    statement: Lengthwise shall bundle a coherent baseline library covering feature capture, specification, clarification, specification review, planning, verification design, Build Contract implementation, implementation review, build-readiness review, verification review, and reconciliation.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-041-01 }
+      - { type: has-acceptance-criterion, to: AC-041-02 }
+      - { type: has-acceptance-criterion, to: AC-041-03 }
+  - { id: AC-041-01, type: acceptance-criterion, lifecycle: accepted, statement: "The bundle exposes exactly capture-feature, specify-feature, clarify-feature, review-specification, plan-feature, design-verification, review-build-readiness, implement-build-contract, review-implementation, review-verification, and reconcile-feature, and validation finds no duplicate semantic-action owner." }
+  - { id: AC-041-02, type: acceptance-criterion, lifecycle: accepted, statement: "Engineering review confirms that each skill has a distinct outcome and that deterministic Lengthwise responsibilities have not been recast as prompt instructions." }
+  - { id: AC-041-03, type: acceptance-criterion, lifecycle: accepted, statement: "F-004 loads only bundled standard skills; project-local custom skills, standard-skill overrides, override precedence, and marketplace behavior are absent while later extension seams remain possible." }
+
+  - id: REQ-042
+    type: requirement
+    title: Bind workflow actions to canonical skills
+    lifecycle: accepted
+    statement: Lengthwise shall identify the canonical skill applicable to each AI-capable semantic workflow action without storing a provider-specific skill identifier in workflow state.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-042-01 }
+      - { type: has-acceptance-criterion, to: AC-042-02 }
+      - { type: has-acceptance-criterion, to: AC-042-03 }
+      - { type: has-acceptance-criterion, to: AC-042-04 }
+      - { type: has-acceptance-criterion, to: AC-042-05 }
+      - { type: has-acceptance-criterion, to: AC-042-06 }
+  - { id: AC-042-01, type: acceptance-criterion, lifecycle: accepted, statement: "A workflow assessment distinguishes coarse runtime activity, dynamic action identity, and stable semantic action kind, and an AI-capable action exposes one canonical skill ID." }
+  - { id: AC-042-02, type: acceptance-criterion, lifecycle: accepted, statement: "Deterministic-only actions such as Build Contract generation, graph validation, readiness calculation, completion calculation, and constrained route persistence expose no required AI skill." }
+  - { id: AC-042-03, type: acceptance-criterion, lifecycle: accepted, statement: "The same workflow action and governing context produce the same canonical skill binding regardless of installed provider." }
+  - { id: AC-042-04, type: acceptance-criterion, lifecycle: accepted, statement: "The existence or installation of a bundled skill creates no engineering obligation; effective rigor, workflow state, graph state, and deterministic obligation calculation determine whether its semantic action is applicable." }
+  - { id: AC-042-05, type: acceptance-criterion, lifecycle: accepted, statement: "Provider discovery or implicit skill selection grants no authority beyond the current workflow action, bounded context, accepted BuildContract, decision-authority classifications, and escalation boundaries." }
+  - { id: AC-042-06, type: acceptance-criterion, lifecycle: accepted, statement: "Given a task DAG with incomplete dependencies, only dependency-ready tasks expose an eligible implementation semantic action; current contracts or installed skills do not bypass deterministic task readiness." }
+
+  - id: REQ-043
+    type: requirement
+    title: Define bounded skill task packages
+    lifecycle: accepted
+    statement: Lengthwise shall define the skill-side contract for bounded task packages containing the current action, relevant Project Graph context, authoritative artifacts, operational attempt context, decision authority, expected outcomes, deterministic post-checks, and human escalation conditions.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-043-01 }
+      - { type: has-acceptance-criterion, to: AC-043-02 }
+      - { type: has-acceptance-criterion, to: AC-043-03 }
+      - { type: has-acceptance-criterion, to: AC-043-04 }
+  - { id: AC-043-01, type: acceptance-criterion, lifecycle: accepted, statement: "For every standard skill, its manifest declares required and optional context slots and outcome kinds that agree with the workflow binding." }
+  - { id: AC-043-02, type: acceptance-criterion, lifecycle: accepted, statement: "An implementation action identifies its Task, accepted current BuildContract, included authoritative entity IDs, decision authority, attempt identity, and retry reference when applicable." }
+  - { id: AC-043-03, type: acceptance-criterion, lifecycle: accepted, statement: "Representative package fixtures include all context required for the action and omit an unrelated feature branch." }
+  - { id: AC-043-04, type: acceptance-criterion, lifecycle: accepted, statement: "The exposed task package is directly usable with the identified installed skill and does not require the operator to reconstruct a second orchestration prompt." }
+
+  - id: REQ-044
+    type: requirement
+    title: Render provider-native skill packages
+    lifecycle: accepted
+    statement: Lengthwise shall render a validated canonical skill into a provider-native package through a provider renderer that changes only packaging and documented compatibility concerns.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-044-01 }
+      - { type: has-acceptance-criterion, to: AC-044-02 }
+      - { type: has-acceptance-criterion, to: AC-044-03 }
+  - { id: AC-044-01, type: acceptance-criterion, lifecycle: accepted, statement: "Rendering produces a package file map, install layout, provenance record, canonical and rendered digests, and declared divergences for a supported provider." }
+  - { id: AC-044-02, type: acceptance-criterion, lifecycle: accepted, statement: "Normalized canonical instruction bodies and support files remain materially identical across providers unless a renderer emits an accepted capability-divergence record identifying reason, scope, and behavioral impact." }
+  - { id: AC-044-03, type: acceptance-criterion, lifecycle: accepted, statement: "An unsupported provider or incompatible canonical package fails before any installation target is modified." }
+
+  - id: REQ-045
+    type: requirement
+    title: Support Codex and Claude skill conventions
+    lifecycle: accepted
+    statement: Lengthwise shall prove the renderer architecture for current Codex and Claude Agent Skills-compatible discovery and packaging conventions.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-045-01 }
+      - { type: has-acceptance-criterion, to: AC-045-02 }
+      - { type: has-acceptance-criterion, to: AC-045-03 }
+  - { id: AC-045-01, type: acceptance-criterion, lifecycle: accepted, statement: "The Codex renderer produces a discoverable SKILL.md package in the selected Codex skill scope and may place Codex-only UI/dependency metadata outside the canonical methodology." }
+  - { id: AC-045-02, type: acceptance-criterion, lifecycle: accepted, statement: "The Claude renderer produces a discoverable SKILL.md package in the selected Claude skill scope without requiring Claude-only invocation, tool-grant, dynamic-context, or subagent semantics." }
+  - { id: AC-045-03, type: acceptance-criterion, lifecycle: accepted, statement: "Current provider compatibility evaluation identifies no behavioral skill-body fork required for the standard library." }
+
+  - id: REQ-046
+    type: requirement
+    title: Install and update managed skills
+    lifecycle: accepted
+    statement: Lengthwise shall validate, render, and install the canonical bundle for a selected supported provider and shall treat a repeated install as an idempotent update operation.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-046-01 }
+      - { type: has-acceptance-criterion, to: AC-046-02 }
+      - { type: has-acceptance-criterion, to: AC-046-03 }
+      - { type: has-acceptance-criterion, to: AC-046-04 }
+  - { id: AC-046-01, type: acceptance-criterion, lifecycle: accepted, statement: "lw skills install --provider codex and the corresponding claude command report installed, unchanged, updated, conflict, or failed state for every managed package and an unambiguous overall result." }
+  - { id: AC-046-02, type: acceptance-criterion, lifecycle: accepted, statement: "Repeating install with identical canonical and renderer inputs leaves installed content unchanged and reports it as current." }
+  - { id: AC-046-03, type: acceptance-criterion, lifecycle: accepted, statement: "A failure while replacing a managed set restores the prior known installation or reports a recoverable staged/backup state rather than claiming success for a partial unknown mixture." }
+  - { id: AC-046-04, type: acceptance-criterion, lifecycle: accepted, statement: "Project and user scopes are supported, project scope is the default, user scope requires explicit selection, and the resolved scope and exact provider installation root are reported before mutation." }
+
+  - id: REQ-047
+    type: requirement
+    title: Diagnose and remove managed installations
+    lifecycle: accepted
+    statement: Lengthwise shall list canonical skills, diagnose provider installation state, and safely remove only managed derived packages.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-047-01 }
+      - { type: has-acceptance-criterion, to: AC-047-02 }
+      - { type: has-acceptance-criterion, to: AC-047-03 }
+      - { type: has-acceptance-criterion, to: AC-047-04 }
+  - { id: AC-047-01, type: acceptance-criterion, lifecycle: accepted, statement: "lw skills list reports canonical IDs, versions, workflow compatibility, and supported providers without requiring an installation." }
+  - { id: AC-047-02, type: acceptance-criterion, lifecycle: accepted, statement: "lw skills doctor reports missing, stale, incompatible, modified, shadowed where detectable, and current packages with the canonical or provider cause identified." }
+  - { id: AC-047-04, type: acceptance-criterion, lifecycle: accepted, statement: "Diagnosis reports provider precedence, collisions, or shadowing where detectable and does not claim that installation path alone guarantees which duplicate skill a provider selects." }
+  - { id: AC-047-03, type: acceptance-criterion, lifecycle: accepted, statement: "lw skills remove removes an unmodified managed installation, preserves unrelated provider skills, and refuses to delete modified or unproven files without an explicit overwrite/removal policy." }
+
+  - id: REQ-048
+    type: requirement
+    title: Track skill compatibility and provenance
+    lifecycle: accepted
+    statement: Lengthwise shall distinguish canonical methodology version, workflow contract version, canonical content identity, and renderer version in rendered and installed provenance.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-048-01 }
+      - { type: has-acceptance-criterion, to: AC-048-02 }
+      - { type: has-acceptance-criterion, to: AC-048-03 }
+      - { type: has-acceptance-criterion, to: AC-048-04 }
+      - { type: has-acceptance-criterion, to: AC-048-05 }
+  - { id: AC-048-01, type: acceptance-criterion, lifecycle: accepted, statement: "For an installed skill, Lengthwise can report canonical ID, skillVersion, workflowContractVersion, canonical digest, provider, renderer version, rendered digest, scope, and installation time." }
+  - { id: AC-048-02, type: acceptance-criterion, lifecycle: accepted, statement: "A canonical change and a renderer-only change are reported as distinct update reasons." }
+  - { id: AC-048-03, type: acceptance-criterion, lifecycle: accepted, statement: "A syntactically valid installed skill with an unsupported workflow contract version is reported incompatible rather than current." }
+  - { id: AC-048-04, type: acceptance-criterion, lifecycle: accepted, statement: "The deterministic canonical digest covers all canonical content intended to define behavior, including support files, while installation timestamps, destination paths, and other installation-instance facts are excluded from reproducible content identity." }
+  - { id: AC-048-05, type: acceptance-criterion, lifecycle: accepted, statement: "A versioned digest rule unambiguously excludes each digest field or provenance sidecar from the digest it records and distinguishes canonical skill version, workflow-contract version, canonical digest, renderer/provider version, rendered digest, and installation-instance metadata." }
+
+  - id: REQ-049
+    type: requirement
+    title: Implement complete accepted Build Contracts
+    lifecycle: accepted
+    statement: The implement-build-contract skill shall implement the complete current accepted task-scoped Build Contract, preserve decision authority, run applicable available checks, self-review every obligation, and return a structured non-authoritative completion claim.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-049-01 }
+      - { type: has-acceptance-criterion, to: AC-049-02 }
+      - { type: has-acceptance-criterion, to: AC-049-03 }
+      - { type: has-acceptance-criterion, to: AC-049-04 }
+      - { type: has-acceptance-criterion, to: AC-049-05 }
+  - { id: AC-049-01, type: acceptance-criterion, lifecycle: accepted, statement: "In a representative task, the skill enumerates every contract Requirement, NFR, AC, decision-authority constraint, dependency, and verification expectation before claiming completion." }
+  - { id: AC-049-02, type: acceptance-criterion, lifecycle: accepted, statement: "Compilation, a partial happy path, return of control, or a self-declared done state does not cause the skill to omit known unaddressed obligations from continued work or known gaps." }
+  - { id: AC-049-03, type: acceptance-criterion, lifecycle: accepted, statement: "The returned claim identifies task, accepted BuildContract and fingerprint, attempt, per-requirement and per-AC assessment, LOCKED-decision assessment, known gaps, changed files, checks/tests with results, and external-verification items." }
+  - { id: AC-049-04, type: acceptance-criterion, lifecycle: accepted, statement: "The workflow records the claim as operational coordination and does not use it as Evidence, task completion, verification satisfaction, or feature completion." }
+  - { id: AC-049-05, type: acceptance-criterion, lifecycle: accepted, statement: "When human or external verification cannot yet occur, the skill returns a supported implementation assessment and explicit external-verification requirements without looping indefinitely or falsely claiming verification satisfaction." }
+
+  - id: REQ-050
+    type: requirement
+    title: Review implementation independently
+    lifecycle: accepted
+    statement: The review-implementation skill shall assess a returned implementation and completion claim against the entire accepted Build Contract and recommend a precise verification route without trusting the claim as proof.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-050-01 }
+      - { type: has-acceptance-criterion, to: AC-050-02 }
+      - { type: has-acceptance-criterion, to: AC-050-03 }
+      - { type: has-acceptance-criterion, to: AC-050-04 }
+  - { id: AC-050-01, type: acceptance-criterion, lifecycle: accepted, statement: "The review reconstructs all contract obligations, inspects relevant implementation and verification, and identifies unsupported, missing, incorrect, or unverified claims by governing ID where derivable." }
+  - { id: AC-050-02, type: acceptance-criterion, lifecycle: accepted, statement: "When the relevant prerequisites are established, the review distinguishes a current-contract implementation defect from changed or contradictory governing truth and produces one conclusive recommendation of retry-implementation, reconcile, or satisfactory with reasons." }
+  - { id: AC-050-03, type: acceptance-criterion, lifecycle: accepted, statement: "The deterministic coordinator rejects a recommended satisfactory or retry route when current task, Evidence, contract-currency, or verification prerequisites do not permit it." }
+  - { id: AC-050-04, type: acceptance-criterion, lifecycle: accepted, statement: "Given a current accepted BuildContract with no established implementation defect but outstanding required verification, review identifies the missing verification or Evidence and appropriate existing wait/blocker state without asserting satisfaction, changing governing artifacts, or requiring implementation retry solely because Evidence is absent." }
+
+  - id: REQ-051
+    type: requirement
+    title: Supply bounded implementation retry context
+    lifecycle: accepted
+    statement: Lengthwise shall supply implement-build-contract with bounded retry context that focuses the next attempt on unsatisfied obligations while retaining awareness of the full current accepted contract.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-051-01 }
+      - { type: has-acceptance-criterion, to: AC-051-02 }
+      - { type: has-acceptance-criterion, to: AC-051-03 }
+  - { id: AC-051-01, type: acceptance-criterion, lifecycle: accepted, statement: "Retry context includes the current accepted BuildContract, prior attempt and completion claim, failed or missing Verification obligations, affected ACs/Requirements where derivable, blocking findings, known gaps, relevant prior changed files, and contract-current result." }
+  - { id: AC-051-02, type: acceptance-criterion, lifecycle: accepted, statement: "Given a current accepted contract and one omitted obligation, the next attempt addresses that omission without contract regeneration, repeated gate approval, or unnecessary rewrite of already-satisfactory work, then rechecks the full contract." }
+  - { id: AC-051-03, type: acceptance-criterion, lifecycle: accepted, statement: "Given a stale contract or governing-context conflict, implementation retry is suppressed and reconciliation is identified instead." }
+
+  - id: REQ-052
+    type: requirement
+    title: Apply reusable human escalation semantics
+    lifecycle: accepted
+    statement: Standard skills shall escalate material decisions, governing conflicts, authority violations, stale contracts, and insufficient evidence while retaining implementer discretion for harmless delegated details.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-052-01 }
+      - { type: has-acceptance-criterion, to: AC-052-02 }
+      - { type: has-acceptance-criterion, to: AC-052-03 }
+  - { id: AC-052-01, type: acceptance-criterion, lifecycle: accepted, statement: "An escalation names a supported reason, the affected governing entity or evidence gap where available, the blocked outcome, and the authority required to resolve it." }
+  - { id: AC-052-02, type: acceptance-criterion, lifecycle: accepted, statement: "A skill does not silently change a LOCKED decision, accepted material behavior, or Build Contract input to make work pass." }
+  - { id: AC-052-03, type: acceptance-criterion, lifecycle: accepted, statement: "Representative delegated naming, local refactoring, and test-organization choices proceed without human escalation when the accepted contract leaves them open." }
+
+  - id: REQ-053
+    type: requirement
+    title: Evaluate engineering methodology quality
+    lifecycle: accepted
+    statement: Lengthwise shall evaluate standard skills through deterministic package tests and representative engineering exercises that assess useful outcomes rather than Markdown parsing alone.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-053-01 }
+      - { type: has-acceptance-criterion, to: AC-053-02 }
+      - { type: has-acceptance-criterion, to: AC-053-03 }
+      - { type: has-acceptance-criterion, to: AC-053-04 }
+      - { type: has-acceptance-criterion, to: AC-053-05 }
+  - { id: AC-053-01, type: acceptance-criterion, lifecycle: accepted, statement: "Deterministic packaging evidence covers canonical validation, both renderers and discovery layouts, provenance and digests, idempotent install/update, manual-modification conflicts, safe removal, unsupported providers, and failure rollback." }
+  - { id: AC-053-02, type: acceptance-criterion, lifecycle: accepted, statement: "Mocked workflow fixtures prove Lengthwise processing of completion claims, retry findings, routing results, stale-contract conditions, and structured outcomes, and are not presented as evidence that natural-language methodology worked." }
+  - { id: AC-053-03, type: acceptance-criterion, lifecycle: accepted, statement: "Representative real exercises manually use installed skills through existing supported provider clients to implement a current accepted BuildContract, return an omitted or incorrect obligation claim, detect it, retry with bounded context, correct it without contract regeneration or unrelated rework, and repeat full-contract review for regressions." }
+  - { id: AC-053-04, type: acceptance-criterion, lifecycle: accepted, statement: "Separate real exercises route changed governing truth to reconciliation and retain pending human or external verification as a blocker rather than falsely selecting implementation retry or satisfactory." }
+  - { id: AC-053-05, type: acceptance-criterion, lifecycle: accepted, statement: "Human engineering review assesses methodology quality and cross-provider intended behavior without requiring identical model output or an eleven-skills-by-two-providers execution matrix, and records any accepted capability divergence." }
+
+  - id: REQ-054
+    type: requirement
+    title: Provide a usable manual skill handoff
+    lifecycle: accepted
+    statement: Lengthwise shall let an operator carry an eligible AI-capable semantic workflow action through an installed supported-provider skill and return its structured outcome without Lengthwise invoking the provider.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-054-01 }
+      - { type: has-acceptance-criterion, to: AC-054-02 }
+      - { type: has-acceptance-criterion, to: AC-054-03 }
+  - { id: AC-054-01, type: acceptance-criterion, lifecycle: accepted, statement: "For an eligible AI-capable action, an existing supported Lengthwise interface exposes canonical skill identity and compatible version, bounded task package and authoritative context, current accepted BuildContract where applicable, decision authority, expected structured outputs, deterministic post-checks, escalation conditions, and relevant prior-attempt or retry context." }
+  - { id: AC-054-02, type: acceptance-criterion, lifecycle: accepted, statement: "An operator can use that package directly with the installed skill in an existing Codex or Claude client and submit the resulting structured outcome through an existing supported Lengthwise interface without reconstructing another orchestration prompt." }
+  - { id: AC-054-03, type: acceptance-criterion, lifecycle: accepted, statement: "After submission, F-003 records the outcome under its existing authority boundaries, runs applicable deterministic checks, and exposes the resulting next action; no F-004 production path invokes or manages a provider session." }
+
+  - id: REQ-055
+    type: requirement
+    title: Preserve lossless structured implementation returns
+    lifecycle: accepted
+    statement: Lengthwise shall validate and preserve one semantic implementation-completion-claim contract consistently across supported application-service, CLI, HTTP, and workbench boundaries.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-055-01 }
+      - { type: has-acceptance-criterion, to: AC-055-02 }
+      - { type: has-acceptance-criterion, to: AC-055-03 }
+      - { type: has-acceptance-criterion, to: AC-055-04 }
+  - { id: AC-055-01, type: acceptance-criterion, lifecycle: accepted, statement: "The validated claim preserves task identity, accepted BuildContract identity and fingerprint, implementation attempt identity, per-Requirement and per-AC assessment, LOCKED-decision assessment, known gaps, changed files, checks/tests executed and results, external-verification requirements, and every other accepted claim field." }
+  - { id: AC-055-02, type: acceptance-criterion, lifecycle: accepted, statement: "Submitting semantically equivalent structured completion claims through supported CLI and HTTP/application-service interfaces produces semantically equivalent operational records." }
+  - { id: AC-055-03, type: acceptance-criterion, lifecycle: accepted, statement: "Viewing or editing a structured completion claim through the workbench does not silently discard fields merely because the workbench does not expose every field as an editable control." }
+  - { id: AC-055-04, type: acceptance-criterion, lifecycle: accepted, statement: "An obligation omitted from a completion claim remains unassessed and is never interpreted as successful implementation, verification, Evidence, or satisfaction." }
+
+  - id: REQ-056
+    type: requirement
+    title: Preserve inconclusive verification state
+    lifecycle: accepted
+    statement: Implementation review shall distinguish missing implementation from missing Evidence and shall preserve a pending verification wait or blocker when no conclusive route is justified.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-056-01 }
+      - { type: has-acceptance-criterion, to: AC-056-02 }
+  - { id: AC-056-01, type: acceptance-criterion, lifecycle: accepted, statement: "A known defect under a current contract recommends retry-implementation, changed or contradictory governing truth recommends reconcile, and applicable sufficient required Evidence permits satisfactory; absent those conditions, review remains inconclusive." }
+  - { id: AC-056-02, type: acceptance-criterion, lifecycle: accepted, statement: "An inconclusive review names outstanding verification or Evidence and reuses F-003 wait/blocker semantics without creating an unnecessary fourth conclusive route, retrying solely for absent Evidence, or asserting satisfaction." }
+
+  - id: REQ-057
+    type: requirement
+    title: Reuse valid implementation-produced verification Evidence
+    lifecycle: accepted
+    statement: Lengthwise and its review methodology shall distinguish non-authoritative completion claims from genuine verification results produced during implementation that qualify as Evidence.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-057-01 }
+      - { type: has-acceptance-criterion, to: AC-057-02 }
+  - { id: AC-057-01, type: acceptance-criterion, lifecycle: accepted, statement: "A completion claim is never itself Evidence, while a genuine implementation-time verification result may become Evidence only through the normal provenance, applicability, revision or context, and Verification-link requirements." }
+  - { id: AC-057-02, type: acceptance-criterion, lifecycle: accepted, statement: "Implementation and verification review assesses existing Evidence for credibility, currency, applicability, linkage, and sufficiency and does not require a good result to be rerun merely because the implementer produced it." }
+
+  - id: NFR-025
+    type: non-functional-requirement
+    title: Provider-portable methodology
+    lifecycle: accepted
+    statement: Standard engineering behavior shall remain materially consistent across supported providers, with provider divergence treated as an explicit reviewed exception.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-025-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-025-02 }
+  - { id: AC-NFR-025-01, type: acceptance-criterion, lifecycle: accepted, statement: "Codex and Claude packages derive from the same canonical methodology tree and differ only in reported packaging, metadata, or an accepted capability divergence." }
+  - { id: AC-NFR-025-02, type: acceptance-criterion, lifecycle: accepted, statement: "A divergence record identifies provider capability evidence, affected files/fields, intended behavioral impact, and review disposition." }
+
+  - id: NFR-026
+    type: non-functional-requirement
+    title: Canonical authority and reproducibility
+    lifecycle: accepted
+    statement: Git-tracked canonical skills shall be the only authoritative methodology source, and rendered installations shall be reproducible derived artifacts.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-026-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-026-02 }
+      - { type: has-acceptance-criterion, to: AC-NFR-026-03 }
+      - { type: has-acceptance-criterion, to: AC-NFR-026-04 }
+  - { id: AC-NFR-026-01, type: acceptance-criterion, lifecycle: accepted, statement: "Deleting a rendered installation and reinstalling with identical canonical and renderer inputs reproduces the same semantic package and rendered digest." }
+  - { id: AC-NFR-026-02, type: acceptance-criterion, lifecycle: accepted, statement: "No command imports provider-installed edits back into canonical source or treats an installed copy as governing truth." }
+  - { id: AC-NFR-026-03, type: acceptance-criterion, lifecycle: accepted, statement: "Canonical SKILL.md, lengthwise.yaml, and behavior-defining support files form one authoritative source tree; methodology may use progressive disclosure and need not reside in one Markdown body." }
+  - { id: AC-NFR-026-04, type: acceptance-criterion, lifecycle: accepted, statement: "Reproducible canonical and rendered content identities exclude installation-instance timestamps and paths and use explicit non-recursive digest and provenance rules." }
+
+  - id: NFR-027
+    type: non-functional-requirement
+    title: Safe idempotent installation
+    lifecycle: accepted
+    statement: Skill installation and removal shall be deterministic, idempotent, scoped, and recoverable without silently damaging provider or user files.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-027-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-027-02 }
+      - { type: has-acceptance-criterion, to: AC-NFR-027-03 }
+      - { type: has-acceptance-criterion, to: AC-NFR-027-04 }
+      - { type: has-acceptance-criterion, to: AC-NFR-027-05 }
+  - { id: AC-NFR-027-01, type: acceptance-criterion, lifecycle: accepted, statement: "Installation resolves and reports an exact provider scope and target before mutation, stages output, and either installs the intended managed set or preserves a recoverable prior state." }
+  - { id: AC-NFR-027-02, type: acceptance-criterion, lifecycle: accepted, statement: "Existing unrelated skills and user-modified managed files are never silently overwritten or deleted." }
+  - { id: AC-NFR-027-03, type: acceptance-criterion, lifecycle: accepted, statement: "Every source and destination path resolves within its canonical package root or selected provider/scope installation root; traversal and symlink-based escape are rejected before mutation." }
+  - { id: AC-NFR-027-04, type: acceptance-criterion, lifecycle: accepted, statement: "Installation copies validated content without executing bundled canonical scripts as an installation side effect." }
+  - { id: AC-NFR-027-05, type: acceptance-criterion, lifecycle: accepted, statement: "Update stages replacement before commit and preserves the prior managed installation on failure where feasible; removal deletes only files proven to belong to the selected managed installation." }
+
+  - id: NFR-028
+    type: non-functional-requirement
+    title: Bounded context economy
+    lifecycle: accepted
+    statement: Skill contracts and methodology shall use progressive disclosure and the smallest relevant context that remains complete for the engineering action.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-028-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-028-02 }
+  - { id: AC-NFR-028-01, type: acceptance-criterion, lifecycle: accepted, statement: "Standard SKILL.md entrypoints remain focused and route detailed material to named references or deterministic scripts only when needed." }
+  - { id: AC-NFR-028-02, type: acceptance-criterion, lifecycle: accepted, statement: "Fixture inspection shows that an implementation or retry package omits unrelated project entities while retaining every accepted contract obligation and relevant attempt fact." }
+
+  - id: NFR-029
+    type: non-functional-requirement
+    title: Methodology maintainability
+    lifecycle: accepted
+    statement: Engineering methodology shall avoid duplicated truth across canonical metadata, instructions, provider renderers, and installed packages.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-029-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-029-02 }
+  - { id: AC-NFR-029-01, type: acceptance-criterion, lifecycle: accepted, statement: "Canonical name/description and methodology have one source each, while renderers contain no independently maintained skill body." }
+  - { id: AC-NFR-029-02, type: acceptance-criterion, lifecycle: accepted, statement: "Adding a supported provider requires a renderer and compatibility tests, not copying and editing the standard skill library." }
+
+  - id: NFR-030
+    type: non-functional-requirement
+    title: Engineering outcome quality
+    lifecycle: accepted
+    statement: Standard skills shall produce useful, traceable engineering outcomes consistent with Lengthwise principles under representative ambiguity, implementation, review, retry, and reconciliation situations.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-030-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-030-02 }
+      - { type: has-acceptance-criterion, to: AC-NFR-030-03 }
+  - { id: AC-NFR-030-01, type: acceptance-criterion, lifecycle: accepted, statement: "Human review finds outputs bounded, obligation-complete, evidence-conscious, traceable, and appropriately escalated rather than merely well-formatted." }
+  - { id: AC-NFR-030-02, type: acceptance-criterion, lifecycle: accepted, statement: "Quality evaluation does not optimize for prompt length, skill count, test count, provider count, or duplicated evidence." }
+  - { id: AC-NFR-030-03, type: acceptance-criterion, lifecycle: accepted, statement: "Methodology-quality acceptance includes representative real installed-skill exercises and cannot be satisfied solely by Markdown parsing, renderer snapshots, mocked provider responses, or fabricated completion claims." }
+
+  - id: NFR-031
+    type: non-functional-requirement
+    title: Explicit compatibility evolution
+    lifecycle: accepted
+    statement: Skill, workflow-contract, and renderer evolution shall detect stale or incompatible installations without requiring a dependency solver.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-031-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-031-02 }
+  - { id: AC-NFR-031-01, type: acceptance-criterion, lifecycle: accepted, statement: "Positive integer skill and workflow-contract versions plus deterministic digests are sufficient to distinguish current, stale, renderer-stale, modified, and incompatible state." }
+  - { id: AC-NFR-031-02, type: acceptance-criterion, lifecycle: accepted, statement: "F-004 introduces no package registry, transitive dependency graph, or semantic-version range resolution." }
+
+  - id: NFR-032
+    type: non-functional-requirement
+    title: Provider invocation separation
+    lifecycle: accepted
+    statement: F-004 shall define methodology and provider-native packaging without invoking providers or deciding provider session behavior.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-032-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-032-02 }
+  - { id: AC-NFR-032-01, type: acceptance-criterion, lifecycle: accepted, statement: "No F-004 production path starts, resumes, routes, or coordinates a Codex, Claude, or other model session." }
+  - { id: AC-NFR-032-02, type: acceptance-criterion, lifecycle: accepted, statement: "Provider renderers depend on canonical package models and filesystem installation services rather than agent runtime adapters; manual use of an exposed task package and submission through an existing Lengthwise interface does not constitute provider invocation." }
+
+  - id: NFR-033
+    type: non-functional-requirement
+    title: Shared service consistency
+    lifecycle: accepted
+    statement: Skill loading, validation, rendering, installation diagnosis, and workflow binding shall live in reusable application services rather than CLI or workbench presentation components.
+    relationships:
+      - { type: has-acceptance-criterion, to: AC-NFR-033-01 }
+      - { type: has-acceptance-criterion, to: AC-NFR-033-02 }
+  - { id: AC-NFR-033-01, type: acceptance-criterion, lifecycle: accepted, statement: "CLI, tests, and any workbench disclosure consume the same validated canonical registry and installation-status services." }
+  - { id: AC-NFR-033-02, type: acceptance-criterion, lifecycle: accepted, statement: "Provider path, collision, digest, and modification rules are not reimplemented in Svelte components or command-formatting code." }
+
+  - id: Q-F004-001
+    type: question
+    lifecycle: answered
+    blocking: true
+    resolution: "Accepted Option A: canonical skills are standard Agent Skills-style packages; SKILL.md provides portable frontmatter and the primary methodology entry point, lengthwise.yaml contains only typed Lengthwise workflow/version/context contracts, and optional canonical support files may hold progressively loaded methodology. Provider-specific forks require an explicit capability reason."
+    prompt: "Should canonical source be a standard SKILL.md package plus a minimal non-duplicative lengthwise.yaml manifest? Options: (A, recommended) standard SKILL.md is the sole methodology/name/description source and lengthwise.yaml holds only routing/version contracts; (B) place all Lengthwise metadata in Agent Skills string metadata, losing useful typed arrays; (C) author separate skill.md and skill.yaml inputs and render SKILL.md, accepting duplicated discovery metadata and a less directly testable canonical package."
+    relationships:
+      - { type: concerns, to: F-004 }
+      - { type: concerns, to: REQ-039 }
+      - { type: resolved-by, to: REQ-039 }
+
+  - id: Q-F004-002
+    type: question
+    lifecycle: answered
+    blocking: true
+    resolution: "Support both project and user installation scopes and default to project scope. User scope is explicitly selectable, and installation diagnosis surfaces provider precedence, collisions, and shadowing where detectable without assuming path alone determines duplicate selection."
+    prompt: "What install scopes must F-004 support and which is the default? Options: (A, recommended) support user and project scopes, default user for bundled cross-project methodology, and require an explicit project scope for repository-pinned installations; (B) support both but default project for stronger per-repository isolation; (C) support user scope only for the smallest initial surface. Tradeoff: user scope is operationally clean but can create cross-project version conflicts, while project scope is reproducible but creates generated repository-local files and provider shadowing concerns."
+    relationships:
+      - { type: concerns, to: F-004 }
+      - { type: concerns, to: REQ-046 }
+      - { type: resolved-by, to: REQ-046 }
+
+  - id: Q-F004-003
+    type: question
+    lifecycle: answered
+    blocking: true
+    resolution: "F-004 provides bundled standard skills only. Project-local custom skills, standard-skill overrides, override precedence, customization trust boundaries, and marketplace semantics are deferred while implementation preserves extension seams."
+    prompt: "Which canonical sources are in F-004? Options: (A, recommended) bundled standard skills only, with loader seams and collision diagnostics reserved for later project-local additions; (B) bundled skills plus project-local additional skills, but no standard-skill overrides; (C) bundled skills plus project-local additions and explicit configured overrides. Each additional source increases authority, collision, compatibility, and support scope before the core portability hypothesis is proven."
+    relationships:
+      - { type: concerns, to: F-004 }
+      - { type: concerns, to: REQ-041 }
+      - { type: resolved-by, to: REQ-041 }
+
+  - id: Q-F004-004
+    type: question
+    lifecycle: answered
+    blocking: true
+    resolution: "Add R-008 — Engineering Skills and preserve R-005 — Implementer Execution. R-008 defines methodology, packaging, installation, and manual handoff; R-005 later owns provider invocation and session execution. Roadmap identity is not renumbered to match execution order."
+    prompt: "How should F-004 attach to the roadmap when R-005 is already the accepted Implementer Execution item that the requested sequence assigns to F-005? Options: (A, recommended) add the next unused roadmap ID for Engineering Skills and preserve R-005's established identity despite numeric ordering; (B) rename/reassign R-005 and reconcile every accepted historical reference to Implementer Execution; (C) leave F-004 temporarily without a roadmap relationship."
+    relationships:
+      - { type: concerns, to: F-004 }
+      - { type: resolved-by, to: R-008 }

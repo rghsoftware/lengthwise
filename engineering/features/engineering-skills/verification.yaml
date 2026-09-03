@@ -1,0 +1,183 @@
+lengthwise: 1
+entities:
+  - id: VER-035
+    type: verification
+    title: Canonical Skill Package Registry Validation and Identity
+    lifecycle: defined
+    method: automated-schema-path-digest-and-registry-test-plus-package-inspection
+    required: true
+    relationships:
+      - { type: verifies, to: AC-039-01 }
+      - { type: verifies, to: AC-039-02 }
+      - { type: verifies, to: AC-039-03 }
+      - { type: verifies, to: AC-040-01 }
+      - { type: verifies, to: AC-040-02 }
+      - { type: verifies, to: AC-040-03 }
+      - { type: verifies, to: AC-041-01 }
+      - { type: verifies, to: AC-041-02 }
+      - { type: verifies, to: AC-041-03 }
+      - { type: verifies, to: AC-NFR-026-01 }
+      - { type: verifies, to: AC-NFR-026-02 }
+      - { type: verifies, to: AC-NFR-026-03 }
+      - { type: verifies, to: AC-NFR-026-04 }
+      - { type: verifies, to: AC-NFR-029-01 }
+      - { type: verifies, to: AC-NFR-029-02 }
+      - { type: verifies, to: AC-NFR-031-01 }
+      - { type: verifies, to: AC-NFR-031-02 }
+
+  - id: VER-036
+    type: verification
+    title: Semantic Skill Applicability and Bounded Task Packages
+    lifecycle: defined
+    method: automated-workflow-projection-contract-and-context-slice-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-042-01 }
+      - { type: verifies, to: AC-042-02 }
+      - { type: verifies, to: AC-042-03 }
+      - { type: verifies, to: AC-042-04 }
+      - { type: verifies, to: AC-042-05 }
+      - { type: verifies, to: AC-042-06 }
+      - { type: verifies, to: AC-043-01 }
+      - { type: verifies, to: AC-043-02 }
+      - { type: verifies, to: AC-043-03 }
+      - { type: verifies, to: AC-043-04 }
+      - { type: verifies, to: AC-054-01 }
+      - { type: verifies, to: AC-054-03 }
+      - { type: verifies, to: AC-NFR-028-01 }
+      - { type: verifies, to: AC-NFR-028-02 }
+      - { type: verifies, to: AC-NFR-032-01 }
+      - { type: verifies, to: AC-NFR-032-02 }
+      - { type: verifies, to: AC-NFR-033-01 }
+      - { type: verifies, to: AC-NFR-033-02 }
+
+  - id: VER-037
+    type: verification
+    title: Codex and Claude Renderer Portability
+    lifecycle: defined
+    method: automated-rendered-layout-compatibility-and-normalized-methodology-comparison
+    required: true
+    relationships:
+      - { type: verifies, to: AC-044-01 }
+      - { type: verifies, to: AC-044-02 }
+      - { type: verifies, to: AC-044-03 }
+      - { type: verifies, to: AC-045-01 }
+      - { type: verifies, to: AC-045-02 }
+      - { type: verifies, to: AC-045-03 }
+      - { type: verifies, to: AC-NFR-025-01 }
+      - { type: verifies, to: AC-NFR-025-02 }
+
+  - id: VER-038
+    type: verification
+    title: Scoped Installation Provenance and Filesystem Safety
+    lifecycle: defined
+    method: automated-project-user-scope-install-update-doctor-remove-and-adversarial-path-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-046-01 }
+      - { type: verifies, to: AC-046-02 }
+      - { type: verifies, to: AC-046-03 }
+      - { type: verifies, to: AC-046-04 }
+      - { type: verifies, to: AC-047-01 }
+      - { type: verifies, to: AC-047-02 }
+      - { type: verifies, to: AC-047-03 }
+      - { type: verifies, to: AC-047-04 }
+      - { type: verifies, to: AC-048-01 }
+      - { type: verifies, to: AC-048-02 }
+      - { type: verifies, to: AC-048-03 }
+      - { type: verifies, to: AC-048-04 }
+      - { type: verifies, to: AC-048-05 }
+      - { type: verifies, to: AC-NFR-027-01 }
+      - { type: verifies, to: AC-NFR-027-02 }
+      - { type: verifies, to: AC-NFR-027-03 }
+      - { type: verifies, to: AC-NFR-027-04 }
+      - { type: verifies, to: AC-NFR-027-05 }
+      - { type: verifies, to: AC-NFR-031-01 }
+      - { type: verifies, to: AC-NFR-031-02 }
+
+  - id: VER-039
+    type: verification
+    title: Build Contract Implementation Retry and Escalation Methodology
+    lifecycle: defined
+    method: representative-real-installed-skill-exercise-plus-human-contract-review
+    required: true
+    relationships:
+      - { type: verifies, to: AC-049-01 }
+      - { type: verifies, to: AC-049-02 }
+      - { type: verifies, to: AC-049-03 }
+      - { type: verifies, to: AC-049-04 }
+      - { type: verifies, to: AC-049-05 }
+      - { type: verifies, to: AC-051-01 }
+      - { type: verifies, to: AC-051-02 }
+      - { type: verifies, to: AC-051-03 }
+      - { type: verifies, to: AC-052-01 }
+      - { type: verifies, to: AC-052-02 }
+      - { type: verifies, to: AC-052-03 }
+
+  - id: VER-040
+    type: verification
+    title: Implementation Review Routing Pending Verification and Evidence Reuse
+    lifecycle: defined
+    method: representative-review-exercises-plus-deterministic-route-and-evidence-policy-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-050-01 }
+      - { type: verifies, to: AC-050-02 }
+      - { type: verifies, to: AC-050-03 }
+      - { type: verifies, to: AC-050-04 }
+      - { type: verifies, to: AC-056-01 }
+      - { type: verifies, to: AC-056-02 }
+      - { type: verifies, to: AC-057-01 }
+      - { type: verifies, to: AC-057-02 }
+
+  - id: VER-041
+    type: verification
+    title: Lossless Structured Implementation Return Interfaces
+    lifecycle: defined
+    method: automated-application-service-cli-http-workbench-round-trip-equivalence-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-055-01 }
+      - { type: verifies, to: AC-055-02 }
+      - { type: verifies, to: AC-055-03 }
+      - { type: verifies, to: AC-055-04 }
+
+  - id: VER-042
+    type: verification
+    title: Deterministic Packaging and Mocked Workflow Evidence Separation
+    lifecycle: defined
+    method: automated-test-suite-and-evidence-classification-inspection
+    required: true
+    relationships:
+      - { type: verifies, to: AC-053-01 }
+      - { type: verifies, to: AC-053-02 }
+
+  - id: VER-043
+    type: verification
+    title: Manual Installed Skill Handoff and High Risk Real Exercises
+    lifecycle: defined
+    method: manual-codex-and-claude-installed-skill-scenarios-with-recorded-artifacts-and-human-review
+    required: true
+    relationships:
+      - { type: verifies, to: AC-053-03 }
+      - { type: verifies, to: AC-053-04 }
+      - { type: verifies, to: AC-054-02 }
+      - { type: verifies, to: AC-NFR-030-01 }
+      - { type: verifies, to: AC-NFR-030-03 }
+
+  - id: VER-044
+    type: verification
+    title: Engineering Methodology Quality and Provider Portability Review
+    lifecycle: defined
+    method: human-engineering-review-of-canonical-methodology-rendered-packages-and-representative-outcomes
+    required: true
+    relationships:
+      - { type: verifies, to: AC-041-02 }
+      - { type: verifies, to: AC-044-02 }
+      - { type: verifies, to: AC-045-03 }
+      - { type: verifies, to: AC-053-05 }
+      - { type: verifies, to: AC-NFR-025-01 }
+      - { type: verifies, to: AC-NFR-025-02 }
+      - { type: verifies, to: AC-NFR-030-01 }
+      - { type: verifies, to: AC-NFR-030-02 }
+      - { type: verifies, to: AC-NFR-030-03 }
