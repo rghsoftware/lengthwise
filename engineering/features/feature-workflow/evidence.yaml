@@ -92,7 +92,7 @@ entities:
     lifecycle: recorded
     outcome: passed
     result: "TypeScript compilation, 117 Bun tests, the production workbench build, lw index, and lw check passed on 2026-09-02. The index contained 373 entities and 912 relationships, and the Project Graph reported no findings."
-    applicability: "The current F-003 working tree based on commit 861b33f, including completed workflow semantics, repository-owner-driven workbench refinements, and the final terminal-action projection correction."
+    applicability: "F-003 implementation and authoritative closeout artifacts at commit 18727fe, including completed workflow semantics, repository-owner-driven workbench refinements, and the final terminal-action projection correction."
     contextFingerprints:
       VER-022: f671fd04bdaa89d3
       VER-023: fccf7191d2c16b32
@@ -124,7 +124,7 @@ entities:
     outcome: passed
     kind: moderated-human-usability-evaluation
     result: "The repository owner iteratively evaluated the live Feature Workflow workbench and accepted the reconciled experience after verifying global active-workflow visibility, lifecycle controls, two-step gate review, Build Contract review targeting, implementation handoff and return guidance, actionable entity links, consolidated blocker/action presentation, guided authoring, collapsible navigation, and pinned editor guidance. The owner explicitly authorized VER-033 as complete and verified."
-    applicability: "The current F-003 workbench implementation and VER-033 usability criteria based on commit 861b33f, reviewed and accepted on 2026-09-02."
+    applicability: "The F-003 workbench implementation and VER-033 usability criteria at commit 18727fe, reviewed and accepted on 2026-09-02."
     contextFingerprints:
       VER-033: 64c1c5afabde7ac5
     relationships:

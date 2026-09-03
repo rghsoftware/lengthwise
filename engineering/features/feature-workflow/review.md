@@ -7,7 +7,7 @@ lifecycle: accepted
 
 # F-003 Verification and Closeout Review
 
-> **Reverified 2026-09-02:** The reopened implementation received fresh automated Evidence at commit `861b33f` and a completed repository-owner usability evaluation. The historical review remains retained for provenance.
+> **Reverified 2026-09-02:** The reopened implementation received fresh automated Evidence at commit `18727fe` and a completed repository-owner usability evaluation. The historical review remains retained for provenance.
 
 ## Review disposition
 
