@@ -14,20 +14,29 @@ export interface TaskReadiness {
   blockedBy: EntityId[];
 }
 
+/**
+ * One dependency-satisfaction rule shared by every readiness consumer.
+ * Lifecycle determines whether a task is a readiness candidate; it does not
+ * change whether that task's declared dependencies are satisfied.
+ */
+export function taskDependencyBlockers(graph: ProjectGraph, task: TaskEntity): EntityId[] {
+  const dependencies = graph
+    .outgoingRelationships(task.id)
+    .filter((relationship) => relationship.type === "depends-on")
+    .map((relationship) => relationship.to);
+
+  return [...new Set(dependencies.filter((dependencyId) => {
+    const dependency = graph.getEntity(dependencyId);
+    return !dependency || dependency.type !== "task" || dependency.lifecycle !== "done";
+  }))].sort();
+}
+
 export function deriveTaskReadiness(graph: ProjectGraph): TaskReadiness[] {
   return graph
     .entitiesOfType("task")
     .filter((task) => task.lifecycle === "planned")
     .map((task) => {
-      const dependsOn = graph
-        .outgoingRelationships(task.id)
-        .filter((relationship) => relationship.type === "depends-on")
-        .map((relationship) => relationship.to);
-
-      const blockedBy = dependsOn.filter((dependencyId) => {
-        const dependency = graph.getEntity(dependencyId);
-        return !dependency || dependency.type !== "task" || dependency.lifecycle !== "done";
-      });
+      const blockedBy = taskDependencyBlockers(graph, task);
 
       return { task, ready: blockedBy.length === 0, blockedBy };
     })

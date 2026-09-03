@@ -10,6 +10,7 @@ import { WorkflowCoordinator } from "./coordinator.ts";
 import { Database } from "bun:sqlite";
 import { symlink } from "node:fs/promises";
 import { buildProjectGraph } from "../graph/build.ts";
+import { deriveTaskReadiness } from "../graph/readiness.ts";
 import { renderContractArtifact } from "./contracts.ts";
 
 const roots:string[]=[]; afterEach(async()=>{for(const r of roots.splice(0)) await removeFixtureRepo(r)});
@@ -181,6 +182,46 @@ test("cancellation preserves terminal history and permits a later run",async()=>
 
 test("completed tasks are not offered for implementation handoff",async()=>{
   const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":FULL_MODEL.replace("lifecycle: planned","lifecycle: done")});roots.push(root);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-FULL"]));const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-FULL");let assessment=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"specification",assessment.gates.specification.fingerprint);assessment=await coordinator.assess("F-FULL");await coordinator.approve(run.id,"build-contract",assessment.gates["build-contract"].fingerprint);assessment=await coordinator.assess("F-FULL");expect(assessment.tasks[0]?.lifecycle).toBe("done");expect(assessment.actions.some(action=>action.id==="handoff:TASK-FULL")).toBe(false);coordinator.close();
+});
+
+// AC-042-06
+test("contracted handoff eligibility shares dependency readiness and unlocks without re-gating",async()=>{
+  const model=`lengthwise: 1
+entities:
+  - { id: F-DAG, type: feature, title: DAG workflow, lifecycle: draft, significance: M, relationships: [{ type: addresses, to: REQ-DAG }] }
+  - { id: REQ-DAG, type: requirement, title: DAG requirement, statement: Respect task order, lifecycle: accepted, relationships: [{ type: has-acceptance-criterion, to: AC-DAG }] }
+  - { id: AC-DAG, type: acceptance-criterion, statement: Dependencies gate handoff, lifecycle: accepted }
+  - { id: VER-DAG, type: verification, title: DAG verification, method: automated, required: true, lifecycle: defined, relationships: [{ type: verifies, to: AC-DAG }] }
+  - { id: TASK-BASE, type: task, title: Base task, lifecycle: planned, relationships: [{ type: implements, to: REQ-DAG }] }
+  - { id: TASK-CHILD, type: task, title: Dependent task, lifecycle: planned, relationships: [{ type: implements, to: REQ-DAG }, { type: depends-on, to: TASK-BASE }] }
+  - { id: PLAN-DAG, type: plan, title: DAG plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-BASE }, { type: contains, to: TASK-CHILD }] }
+`;
+  const root=await createFixtureRepo({".lengthwise/project.yaml":STANDARD_CONFIG,"engineering/model.yaml":model});roots.push(root);
+  let built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");
+  await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-BASE","TASK-CHILD"]));
+  const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-DAG");
+  let assessment=await coordinator.assess("F-DAG");await coordinator.approve(run.id,"specification",assessment.gates.specification.fingerprint);
+  assessment=await coordinator.assess("F-DAG");await coordinator.approve(run.id,"build-contract",assessment.gates["build-contract"].fingerprint);
+  assessment=await coordinator.assess("F-DAG");
+
+  const initialReadiness=new Map(deriveTaskReadiness(built.graph).map(result=>[result.task.id,result]));
+  expect(initialReadiness.get("TASK-BASE")).toMatchObject({ready:true,blockedBy:[]});
+  expect(initialReadiness.get("TASK-CHILD")).toMatchObject({ready:false,blockedBy:["TASK-BASE"]});
+  expect(assessment.tasks.find(task=>task.id==="TASK-BASE")).toMatchObject({blockedBy:[],handoffEligible:true});
+  expect(assessment.tasks.find(task=>task.id==="TASK-CHILD")).toMatchObject({blockedBy:["TASK-BASE"],handoffEligible:false});
+  expect(assessment.actions.find(action=>action.id==="handoff:TASK-BASE")?.eligible).toBe(true);
+  expect(assessment.actions.find(action=>action.id==="handoff:TASK-CHILD")).toMatchObject({eligible:false,blockers:[{code:"task-dependency-incomplete",entityId:"TASK-BASE",artifactPath:"engineering/model.yaml",message:"TASK-CHILD depends on incomplete task TASK-BASE"}]});
+  await expect(coordinator.handoff(run.id,"TASK-CHILD","blocked-handoff")).rejects.toThrow("not eligible for handoff");
+
+  await Bun.write(`${root}/engineering/model.yaml`,model.replace("TASK-BASE, type: task, title: Base task, lifecycle: planned","TASK-BASE, type: task, title: Base task, lifecycle: done"));
+  built=await buildProjectGraph(root);if(!built.ok)throw new Error("updated fixture failed");
+  assessment=await coordinator.assess("F-DAG");
+  expect(deriveTaskReadiness(built.graph).find(result=>result.task.id==="TASK-CHILD")).toMatchObject({ready:true,blockedBy:[]});
+  expect(assessment.tasks.find(task=>task.id==="TASK-CHILD")).toMatchObject({contract:"BC-TASK-CHILD",contractStale:false,blockedBy:[],handoffEligible:true});
+  expect(assessment.gates["build-contract"].approved).toBe(true);
+  expect(assessment.actions.find(action=>action.id==="handoff:TASK-CHILD")).toMatchObject({eligible:true,blockers:[]});
+  await expect(coordinator.handoff(run.id,"TASK-CHILD","unlocked-handoff")).resolves.toMatchObject({state:"succeeded"});
+  coordinator.close();
 });
 
 test("returning one of multiple handed-off tasks preserves the other implementation wait",async()=>{
