@@ -134,3 +134,14 @@ entities:
     relationships:
       - { type: governs, to: F-003 }
       - { type: governs, to: REQ-036 }
+  - id: DR-028
+    type: decision
+    title: Verification adjudicates implementation completion claims
+    lifecycle: accepted
+    authority: LOCKED
+    decision: "Record implementation returns and attempt history as operational coordination: verification routes incomplete implementation back under the current accepted Build Contract, routes changed governing truth to reconciliation, and alone establishes whether completion obligations are satisfied."
+    relationships:
+      - { type: governs, to: F-003 }
+      - { type: governs, to: REQ-034 }
+      - { type: governs, to: REQ-035 }
+      - { type: governs, to: REQ-036 }

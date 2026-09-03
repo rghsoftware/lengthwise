@@ -71,15 +71,17 @@ Build Contract Gate
 Ready (derived)
        ↓ manual implementation handoff
 Implement
-       ↓ implementation completion claim
+       ↓ implementation returned + completion claim
 Verify
-       ↓ required Evidence
+  ├── unmet implementation obligation → Implement again
+  ├── governing engineering truth changed → Reconcile
+  └── satisfactory required Evidence → completion eligibility
 Reconcile
        ↺ update governing artifacts, implementation, contracts, or evidence
 Complete (derived eligibility, then lifecycle transition)
 ```
 
-Clarification and validation are cross-cutting activities rather than single linear phases. Reconciliation may return work to specification, planning, implementation, or verification. `ready` and completion eligibility are derived; workflow activity never replaces entity lifecycle.
+Clarification and validation are cross-cutting activities rather than single linear phases. An implementation return is an operational completion claim, not task completion or verification evidence. Reconciliation may return work to specification, planning, implementation, or verification. `ready` and completion eligibility are derived; workflow activity never replaces entity lifecycle.
 
 ## State separation
 
@@ -92,8 +94,8 @@ derived state
   verification satisfied, completion eligible
 
 operational state
-  run activity, completed actions, attempts, waits, gate events,
-  interruption, cancellation, reconciliation baseline
+  run activity, completed actions, implementation attempts/returns/retries,
+  waits, gate events, interruption, cancellation, reconciliation baseline
 ```
 
 At most one non-terminal workflow run may exist for a feature. Historical runs remain operationally inspectable.
@@ -112,7 +114,7 @@ Git-tracked engineering artifacts
  .lengthwise/state.db (operational only)
 ```
 
-`.lengthwise/index.db` remains disposable derived graph state. `.lengthwise/state.db` stores resumable workflow operations and approval events but never substitutes for requirements, decisions, questions, plans, tasks, verification definitions, evidence, or accepted Build Contracts.
+`.lengthwise/index.db` remains disposable derived graph state. `.lengthwise/state.db` stores resumable workflow operations, implementation completion claims and retry history, and approval events but never substitutes for requirements, decisions, questions, plans, tasks, verification definitions, evidence, or accepted Build Contracts. An incomplete implementation does not stale its accepted Build Contract; only a change in governing authoritative context does.
 
 ## Entity model additions
 
@@ -189,4 +191,4 @@ The existing workbench gains a feature workflow context showing current activity
 
 ## Completion
 
-F-003 is complete when its required tasks are done, required verification definitions have satisfactory Evidence, no blocking findings or Questions remain, accepted Build Contracts and governing artifacts are current, implementation and governing artifacts have converged, applicable approvals are recorded, and derived completion eligibility permits the feature lifecycle to transition to `complete`.
+F-003 is complete when its required tasks are done, every implementation return has been evaluated, required verification definitions have satisfactory Evidence, no blocking findings or Questions remain, accepted Build Contracts and governing artifacts are current, implementation and governing artifacts have converged, applicable approvals are recorded, and derived completion eligibility permits the feature lifecycle to transition to `complete`. An implementation-completion claim never satisfies task or feature completion by itself.

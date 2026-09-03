@@ -160,3 +160,17 @@ entities:
     relationships:
       - { type: verifies, to: AC-NFR-024-01 }
       - { type: verifies, to: AC-NFR-024-02 }
+
+  - id: VER-034
+    type: verification
+    title: Implementation Return Verification and Retry Loop
+    lifecycle: defined
+    method: automated-service-restart-http-boundary-and-workbench-build-scenario-test
+    required: true
+    relationships:
+      - { type: verifies, to: AC-023-03 }
+      - { type: verifies, to: AC-034-02 }
+      - { type: verifies, to: AC-034-03 }
+      - { type: verifies, to: AC-034-04 }
+      - { type: verifies, to: AC-035-03 }
+      - { type: verifies, to: AC-036-04 }

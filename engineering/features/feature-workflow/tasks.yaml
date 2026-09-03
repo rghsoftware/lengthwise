@@ -160,3 +160,14 @@ entities:
       - { type: implements, to: NFR-019 }
       - { type: implements, to: NFR-024 }
       - { type: depends-on, to: TASK-033 }
+
+  - id: TASK-035
+    type: task
+    title: Refine implementation return verification and retry coordination
+    lifecycle: done
+    relationships:
+      - { type: implements, to: REQ-023 }
+      - { type: implements, to: REQ-034 }
+      - { type: implements, to: REQ-035 }
+      - { type: implements, to: REQ-036 }
+      - { type: depends-on, to: TASK-034 }

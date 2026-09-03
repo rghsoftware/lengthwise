@@ -9,6 +9,7 @@ import { buildProjectGraph } from "../graph/build.ts";
 import { runChecks } from "../checks/run.ts";
 import { ProjectGraph } from "../graph/project-graph.ts";
 import { errorDiagnostic } from "../diagnostics.ts";
+import { renderContractArtifact } from "../workflow/contracts.ts";
 
 const cleanup: string[] = [];
 const servers: Array<ReturnType<typeof Bun.serve>> = [];
@@ -293,4 +294,10 @@ test("workflow API assesses, starts, persists, and protects feature runs", async
   const terminal=await fetch(`${result.url}/api/workflow/F-TEST`);const terminalBody=await terminal.json() as any;expect(terminalBody.run.state).toBe("cancelled");expect(terminalBody.runHistorical).toBe(true);
   expect((await (await fetch(`${result.url}/api/workflows`)).json() as any).runs).toEqual([]);
   result.workflow.close();
+});
+
+test("workflow API records structured returns and routes verification omissions to retry", async () => {
+  const root=await fixture();await Bun.write(`${root}/engineering/feature.yaml`,`lengthwise: 1\nentities:\n  - { id: F-RETRY, type: feature, title: Retry workflow, lifecycle: active, significance: S, relationships: [{ type: addresses, to: REQ-001 }] }\n  - { id: PLAN-RETRY, type: plan, title: Retry plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-001 }] }\n`);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture did not build");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-001"]));
+  const result=await startWorkbenchServer(root,{port:0});if(!result.ok)throw new Error("fixture server did not start");servers.push(result.server);const headers={"content-type":"application/json",origin:result.url};const started=await (await fetch(`${result.url}/api/workflow`,{method:"POST",headers,body:JSON.stringify({featureId:"F-RETRY"})})).json() as any;let assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;for(const gate of ["specification","build-contract"]){const approved=await fetch(`${result.url}/api/workflow/gate`,{method:"POST",headers,body:JSON.stringify({runId:started.run.id,gate,fingerprint:assessment.gates[gate].fingerprint})});expect(approved.status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;}
+  const action=async(body:Record<string,unknown>)=>fetch(`${result.url}/api/workflow/action`,{method:"POST",headers,body:JSON.stringify({runId:started.run.id,...body})});expect((await action({action:"handoff",taskId:"TASK-001",idempotencyKey:"handoff"})).status).toBe(200);expect((await action({action:"return",taskId:"TASK-001",claim:{summary:"Complete",knownGaps:[],changedFiles:["src/retry.ts"]},idempotencyKey:"return"})).status).toBe(200);const routed=await action({action:"evaluate-return",taskId:"TASK-001",outcome:"retry-implementation",failedVerifications:["VER-001"],blockingFindings:["Required behavior absent"],idempotencyKey:"route"});expect(routed.status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;expect(assessment.implementation.retryContexts[0]).toEqual(expect.objectContaining({taskId:"TASK-001",affectedAcceptanceCriteria:["AC-001-01"],contractCurrent:true}));expect(assessment.actions.find((value:any)=>value.id==="handoff:TASK-001")?.eligible).toBe(true);
 });

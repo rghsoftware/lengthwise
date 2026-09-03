@@ -10,7 +10,7 @@ export interface WorkflowAttempt { id: string; runId: string; actionId: string; 
 export interface ReconciliationBaseline { runId: string; fingerprint: string; assessment: unknown; createdAt: string }
 
 const CURRENT_SCHEMA_VERSION = 3;
-const ACTIVITY_TRANSITIONS:Record<WorkflowActivity,readonly WorkflowActivity[]>={capture:["specify"],specify:["plan","reconcile"],plan:["specify","implement","reconcile"],implement:["verify","reconcile"],verify:["implement","reconcile"],reconcile:["specify","plan","implement","verify","complete"],complete:[]};
+const ACTIVITY_TRANSITIONS:Record<WorkflowActivity,readonly WorkflowActivity[]>={capture:["specify"],specify:["plan","reconcile"],plan:["specify","implement","reconcile"],implement:["verify","reconcile"],verify:["implement","reconcile","complete"],reconcile:["specify","plan","implement","verify","complete"],complete:[]};
 function assertActivity(value: string): asserts value is WorkflowActivity {
   if (!(WORKFLOW_ACTIVITIES as readonly string[]).includes(value)) throw new Error(`Unsupported workflow activity ${JSON.stringify(value)}`);
 }

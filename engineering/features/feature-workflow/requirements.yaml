@@ -30,8 +30,10 @@ entities:
     relationships:
       - { type: has-acceptance-criterion, to: AC-023-01 }
       - { type: has-acceptance-criterion, to: AC-023-02 }
+      - { type: has-acceptance-criterion, to: AC-023-03 }
   - { id: AC-023-01, type: acceptance-criterion, lifecycle: accepted, statement: "After Lengthwise restarts, a non-terminal run resumes with its operational history from .lengthwise/state.db while engineering facts are reloaded from repository artifacts." }
   - { id: AC-023-02, type: acceptance-criterion, lifecycle: accepted, statement: "Deleting and rebuilding .lengthwise/index.db does not delete workflow history, and .lengthwise/state.db is not indexed as an authoritative artifact." }
+  - { id: AC-023-03, type: acceptance-criterion, lifecycle: accepted, statement: "After restart following a verification-to-implementation transition, the run exposes the accepted BuildContract, implementation-attempt history, completion claim, missing obligations, retry reason, and next eligible action." }
 
   - id: REQ-024
     type: requirement
@@ -159,8 +161,12 @@ entities:
     relationships:
       - { type: has-acceptance-criterion, to: AC-034-01 }
       - { type: has-acceptance-criterion, to: AC-034-02 }
+      - { type: has-acceptance-criterion, to: AC-034-03 }
+      - { type: has-acceptance-criterion, to: AC-034-04 }
   - { id: AC-034-01, type: acceptance-criterion, lifecycle: accepted, statement: "A ready task exposes its accepted current BuildContract for manual handoff and records handoff/return coordination operationally without provider-specific fields." }
   - { id: AC-034-02, type: acceptance-criterion, lifecycle: accepted, statement: "An implementation completion claim does not itself satisfy verification, reconciliation, task completion, or feature completion eligibility." }
+  - { id: AC-034-03, type: acceptance-criterion, lifecycle: accepted, statement: "When implementation returns, Lengthwise records an operational attempt identity and structured self-assessment of addressed requirements and criteria, respected locked decisions, known gaps, and changed files without treating the claim as authoritative engineering truth." }
+  - { id: AC-034-04, type: acceptance-criterion, lifecycle: accepted, statement: "Given verification identifies unsatisfied obligations and the accepted BuildContract remains current, Lengthwise makes another implementation attempt eligible under that contract and supplies the affected task, failed verification, derivable criteria and requirements, blocking findings, known gaps, contract currency, and next action without restarting or re-gating the feature." }
 
   - id: REQ-035
     type: requirement
@@ -170,8 +176,10 @@ entities:
     relationships:
       - { type: has-acceptance-criterion, to: AC-035-01 }
       - { type: has-acceptance-criterion, to: AC-035-02 }
+      - { type: has-acceptance-criterion, to: AC-035-03 }
   - { id: AC-035-01, type: acceptance-criterion, lifecycle: accepted, statement: "When implementation or Evidence reveals a governing artifact is wrong, reconciliation can direct an update to that artifact and invalidate affected contracts or eligibility rather than requiring conformity to the obsolete artifact." }
   - { id: AC-035-02, type: acceptance-criterion, lifecycle: accepted, statement: "Reconciliation remains incomplete until current artifacts, contracts, task state, required Evidence, and applicable gate effects converge under current checks." }
+  - { id: AC-035-03, type: acceptance-criterion, lifecycle: accepted, statement: "Given verification identifies a conflict with governing specification, Decision, constraint, or BuildContract context, Lengthwise routes to reconciliation and re-evaluates affected contracts before implementation continues rather than classifying the conflict as an ordinary implementation omission." }
 
   - id: REQ-036
     type: requirement
@@ -182,9 +190,11 @@ entities:
       - { type: has-acceptance-criterion, to: AC-036-01 }
       - { type: has-acceptance-criterion, to: AC-036-02 }
       - { type: has-acceptance-criterion, to: AC-036-03 }
+      - { type: has-acceptance-criterion, to: AC-036-04 }
   - { id: AC-036-01, type: acceptance-criterion, lifecycle: accepted, statement: "Readiness output identifies every unmet specification, planning, Question, contract, validation, or gate prerequisite and does not persist readiness as lifecycle or runtime truth." }
   - { id: AC-036-02, type: acceptance-criterion, lifecycle: accepted, statement: "Completion is ineligible while required tasks, Evidence, reconciliation, Questions, checks, or rigor-required approvals are unsatisfied, with each blocker explained." }
   - { id: AC-036-03, type: acceptance-criterion, lifecycle: accepted, statement: "When deterministic completion eligibility is true, a final human gate is requested only if effective rigor requires it; the Feature becomes complete only through an explicit authoritative lifecycle save." }
+  - { id: AC-036-04, type: acceptance-criterion, lifecycle: accepted, statement: "A task becomes completion-eligible only after its implementation return has been evaluated and applicable required verification, Evidence, task state, blocking findings and Questions, reconciliation, and rigor-required approvals are satisfied." }
 
   - id: REQ-037
     type: requirement

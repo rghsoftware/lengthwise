@@ -18,6 +18,7 @@ relationships:
   - { type: contains, to: TASK-032 }
   - { type: contains, to: TASK-033 }
   - { type: contains, to: TASK-034 }
+  - { type: contains, to: TASK-035 }
 ---
 
 # F-003 — Feature Workflow Plan
@@ -78,7 +79,7 @@ All entity types gain an optional explicit `rigor: light | standard | strict` ov
 - action attempt and idempotency identities;
 - waits, cancellation, interruption, and retry state;
 - gate requests and decisions with the graph/context fingerprint reviewed;
-- implementation handoff/return coordination;
+- implementation handoff/return coordination, structured completion claims, attempt identities, and verification-to-implementation retry context;
 - successful reconciliation baselines and explanatory history;
 - schema version and migrations.
 
@@ -110,6 +111,8 @@ TASK-022   TASK-023    TASK-024
            TASK-033
               ▼
            TASK-034
+              ▼
+           TASK-035
 ```
 
 TASK-022 migrates this feature's bootstrap document-form Build Contracts after the domain accepts `build-contract`. TASK-028 builds generation only after the new graph semantics, rigor rules, and operational foundation exist. UI work follows stable service behavior rather than defining workflow semantics in Svelte.
@@ -123,6 +126,7 @@ TASK-022 migrates this feature's bootstrap document-form Build Contracts after t
 - HTTP/browser tests establish the observable workbench workflow and retained-graph repair behavior;
 - fixture inspection establishes bounded contracts and implementer neutrality;
 - dogfood runs F-003's own accepted artifacts through specification, contract, implementation-return, verification, reconciliation, and completion scenarios;
+- focused service and restart scenarios prove false completion claims, successful same-contract retry, governing-context reconciliation, and durable retry resumption;
 - human usability and design review evaluate comprehensibility and meaningful gate presentation.
 
 ## Bootstrap acceptance sequence
