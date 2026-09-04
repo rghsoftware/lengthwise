@@ -1,0 +1,10 @@
+schemaVersion: 1
+skillVersion: 1
+workflowContractVersion: 1
+bindings: [review-specification]
+context:
+  required: [current-workflow-action, feature, bounded-project-context]
+  optional: [authoritative-artifacts, decision-authority, questions, graph-findings]
+outcomes: [specification-review]
+postChecks: [specification-eligibility]
+escalations: [material-product-decision, conflicting-governing-requirements, unresolved-policy-conflict, insufficient-evidence]

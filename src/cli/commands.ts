@@ -1,13 +1,10 @@
-import { buildProjectGraph } from "../graph/build.ts";
-import { runChecks } from "../checks/run.ts";
-import { deriveTaskReadiness } from "../graph/readiness.ts";
-import { writeProjectIndex } from "../index/write.ts";
+import { LengthwiseApplication } from "../application/project-service.ts";
+import type { RelationshipView } from "../application/project-types.ts";
 import { formatDiagnostic } from "./format.ts";
 import type { Diagnostic } from "../diagnostics.ts";
 import type { Entity } from "../domain/entities.ts";
-import type { ProjectGraph } from "../graph/project-graph.ts";
 import { DEFAULT_WORKBENCH_PORT, startWorkbenchServer } from "../workbench/server.ts";
-import { WorkflowCoordinator, type WorkflowGate } from "../workflow/coordinator.ts";
+import { WorkflowCoordinator, isImplementationCompletionClaim, type ImplementationCompletionClaimInput, type WorkflowGate, type WorkflowReconciliationRoute } from "../workflow/coordinator.ts";
 
 export interface CommandResult {
   exitCode: number;
@@ -61,13 +58,12 @@ function buildFailureResult(diagnostics: Diagnostic[]): CommandResult {
 
 /** `lw index` — REQ-012, AC-012-01. Reports whether indexing succeeded. */
 export async function cmdIndex(repoRoot: string): Promise<CommandResult> {
-  const result = await buildProjectGraph(repoRoot);
-  if (!result.ok) return buildFailureResult(result.diagnostics);
+  const opened = await LengthwiseApplication.open(repoRoot);
+  if (!opened.ok) return buildFailureResult(opened.diagnostics);
 
-  await writeProjectIndex(repoRoot, result.graph);
+  const result = await opened.application.rebuildIndex();
   const ok = result.diagnostics.length === 0;
-  const entityCount = result.graph.entities.length;
-  const relationshipCount = result.graph.relationships.length;
+  const { entityCount, relationshipCount } = result;
 
   return {
     exitCode: ok ? 0 : 1,
@@ -83,11 +79,10 @@ export async function cmdIndex(repoRoot: string): Promise<CommandResult> {
 
 /** `lw check` — REQ-012, AC-012-02. Distinguishes clean validation from blocking findings. */
 export async function cmdCheck(repoRoot: string): Promise<CommandResult> {
-  const built = await buildProjectGraph(repoRoot);
-  if (!built.ok) return buildFailureResult(built.diagnostics);
+  const opened = await LengthwiseApplication.open(repoRoot);
+  if (!opened.ok) return buildFailureResult(opened.diagnostics);
 
-  const findings = runChecks(built.graph, built.config);
-  const diagnostics = [...built.diagnostics, ...findings];
+  const diagnostics = opened.application.checkProject().diagnostics;
   const ok = diagnostics.length === 0;
 
   return {
@@ -107,17 +102,17 @@ function notFoundResult(id: string): CommandResult {
   };
 }
 
-function describeRelationships(graph: ProjectGraph, id: string) {
+function describeRelationships(relationships: RelationshipView[]) {
   return {
-    outgoing: graph.outgoingRelationships(id).map((relationship) => ({
+    outgoing: relationships.filter((relationship) => relationship.direction === "outgoing").map((relationship) => ({
       type: relationship.type,
-      to: relationship.to,
-      provenance: relationship.provenance.kind,
+      to: relationship.counterpart.id,
+      provenance: relationship.provenance,
     })),
-    incoming: graph.incomingProjections(id).map((projection) => ({
-      label: projection.label,
-      from: projection.counterpart,
-      provenance: projection.provenance.kind,
+    incoming: relationships.filter((relationship) => relationship.direction === "incoming").map((relationship) => ({
+      label: relationship.label,
+      from: relationship.counterpart.id,
+      provenance: relationship.provenance,
     })),
   };
 }
@@ -126,13 +121,14 @@ function describeRelationships(graph: ProjectGraph, id: string) {
 export async function cmdShow(repoRoot: string, id: string | undefined): Promise<CommandResult> {
   if (!id) return { exitCode: 1, data: { ok: false }, lines: ["Usage: lw show <ID>"] };
 
-  const built = await buildProjectGraph(repoRoot);
-  if (!built.ok) return buildFailureResult(built.diagnostics);
+  const opened = await LengthwiseApplication.open(repoRoot);
+  if (!opened.ok) return buildFailureResult(opened.diagnostics);
 
-  const entity = built.graph.getEntity(id);
-  if (!entity) return notFoundResult(id);
+  const detail = opened.application.getEntity(id);
+  if (!detail) return notFoundResult(id);
+  const entity = detail.entity;
 
-  const relationships = describeRelationships(built.graph, id);
+  const relationships = describeRelationships(detail.relationships);
   const properties = authoredProperties(entity);
 
   const lines = [
@@ -152,13 +148,14 @@ export async function cmdShow(repoRoot: string, id: string | undefined): Promise
 export async function cmdTrace(repoRoot: string, id: string | undefined): Promise<CommandResult> {
   if (!id) return { exitCode: 1, data: { ok: false }, lines: ["Usage: lw trace <ID>"] };
 
-  const built = await buildProjectGraph(repoRoot);
-  if (!built.ok) return buildFailureResult(built.diagnostics);
+  const opened = await LengthwiseApplication.open(repoRoot);
+  if (!opened.ok) return buildFailureResult(opened.diagnostics);
 
-  const entity = built.graph.getEntity(id);
-  if (!entity) return notFoundResult(id);
+  const traceability = opened.application.getTraceability(id);
+  if (!traceability) return notFoundResult(id);
+  const entity = traceability.entity;
 
-  const relationships = describeRelationships(built.graph, id);
+  const relationships = describeRelationships(traceability.relationships);
   const lines = [
     `Traceability for ${entity.id} (${entity.type}):`,
     ...(relationships.outgoing.length === 0
@@ -177,10 +174,10 @@ export async function cmdTrace(repoRoot: string, id: string | undefined): Promis
 
 /** `lw ready` — REQ-012, AC-012-05. */
 export async function cmdReady(repoRoot: string): Promise<CommandResult> {
-  const built = await buildProjectGraph(repoRoot);
-  if (!built.ok) return buildFailureResult(built.diagnostics);
+  const opened = await LengthwiseApplication.open(repoRoot);
+  if (!opened.ok) return buildFailureResult(opened.diagnostics);
 
-  const readiness = deriveTaskReadiness(built.graph);
+  const readiness = opened.application.listTaskReadiness();
   const ready = readiness.filter((entry) => entry.ready);
 
   return {
@@ -189,7 +186,7 @@ export async function cmdReady(repoRoot: string): Promise<CommandResult> {
     lines:
       ready.length === 0
         ? ["No tasks are ready."]
-        : ready.map((entry) => `${entry.task.id} — ${entry.task.title}`),
+        : ready.map((entry) => `${entry.task.id} — ${entry.task.label}`),
   };
 }
 
@@ -199,19 +196,19 @@ export async function cmdWorkflow(repoRoot:string,args:string[]):Promise<Command
   try{
     let data:unknown;
     switch(action){
-      case "status": {if(!rest[0])throw new Error("Usage: lw workflow status <FEATURE>");const activeRun=workflow.state.active(rest[0]);const run=activeRun??workflow.state.latest(rest[0]);data={assessment:await workflow.assess(rest[0]),run,runHistorical:Boolean(run&&!activeRun),history:workflow.state.history(rest[0]),events:run?workflow.state.events(run.id):[],attempts:run?workflow.state.attempts(run.id):[]};break;}
+      case "status": {if(!rest[0])throw new Error("Usage: lw workflow status <FEATURE>");data=await workflow.inspectFeature(rest[0]);break;}
       case "start": if(!rest[0])throw new Error("Usage: lw workflow start <FEATURE>");else data={run:await workflow.start(rest[0]),assessment:await workflow.assess(rest[0])};break;
       case "capture": if(rest.length<4)throw new Error("Usage: lw workflow capture <FEATURE> <TITLE> <DESTINATION> <IDEA>");else data=await workflow.startFromIdea({featureId:rest[0],title:rest[1]!,destination:rest[2]!,idea:rest.slice(3).join(" ")});break;
       case "approve": if(rest.length<3)throw new Error("Usage: lw workflow approve <RUN> <GATE> <FINGERPRINT>");else data=await workflow.approve(rest[0]!,rest[1] as WorkflowGate,rest[2]!);break;
-      case "handoff": if(rest.length<3)throw new Error("Usage: lw workflow handoff <RUN> <TASK> <IDEMPOTENCY_KEY>");else data=await workflow.handoff(rest[0]!,rest[1]!,rest[2]!);break;
-      case "return": if(rest.length<4)throw new Error("Usage: lw workflow return <RUN> <TASK> <IDEMPOTENCY_KEY> <CLAIM>");else data=await workflow.returnImplementation(rest[0]!,rest[1]!,rest.slice(3).join(" "),rest[2]!);break;
-      case "evaluate-return": {if(rest.length<4)throw new Error("Usage: lw workflow evaluate-return <RUN> <TASK> <retry-implementation|reconcile|satisfactory> <IDEMPOTENCY_KEY> [JSON_CONTEXT_OR_REASON]");const [runId,taskId,outcome,idempotencyKey,...detail]=rest;if(!["retry-implementation","reconcile","satisfactory"].includes(outcome!))throw new Error("Unsupported implementation-return outcome");let context:Record<string,unknown>={};if(detail.length){const value=detail.join(" ");try{context=JSON.parse(value);}catch{context={reason:value};}}data=await workflow.evaluateImplementationReturn(runId!,{taskId:taskId!,outcome:outcome as "retry-implementation"|"reconcile"|"satisfactory",idempotencyKey:idempotencyKey!,failedVerifications:Array.isArray(context.failedVerifications)?context.failedVerifications as string[]:undefined,blockingFindings:Array.isArray(context.blockingFindings)?context.blockingFindings as string[]:undefined,knownGaps:Array.isArray(context.knownGaps)?context.knownGaps as string[]:undefined,reason:typeof context.reason==="string"?context.reason:undefined});break;}
-      case "interrupt": if(!rest[0])throw new Error("Usage: lw workflow interrupt <RUN> [REASON]");else data=workflow.interrupt(rest[0],rest.slice(1).join(" ")||"Interrupted by operator");break;
-      case "resume": if(!rest[0])throw new Error("Usage: lw workflow resume <RUN>");else data=await workflow.resume(rest[0]);break;
-      case "retry": if(rest.length<2)throw new Error("Usage: lw workflow retry <RUN> <ATTEMPT>");else data=await workflow.retry(rest[0]!,rest[1]!);break;
-      case "cancel": if(!rest[0])throw new Error("Usage: lw workflow cancel <RUN> [REASON]");else data=workflow.cancel(rest[0],rest.slice(1).join(" ")||"Cancelled by operator");break;
-      case "reconcile": if(rest.length<3)throw new Error("Usage: lw workflow reconcile <RUN> <ROUTE> <REASON>");else data=await workflow.reconcile(rest[0]!,rest[1] as "specify"|"plan"|"implement"|"verify"|"reconcile"|"complete",rest.slice(2).join(" "));break;
-      case "complete": if(!rest[0])throw new Error("Usage: lw workflow complete <RUN>");else data=await workflow.complete(rest[0]);break;
+      case "handoff": if(rest.length<3)throw new Error("Usage: lw workflow handoff <RUN> <TASK> <IDEMPOTENCY_KEY>");else data=await workflow.perform({kind:"handoff",runId:rest[0]!,taskId:rest[1]!,idempotencyKey:rest[2]!});break;
+      case "return": {if(rest.length<4)throw new Error("Usage: lw workflow return <RUN> <TASK> <IDEMPOTENCY_KEY> <CLAIM_OR_JSON>");const text=rest.slice(3).join(" ");let claim:string|ImplementationCompletionClaimInput=text;if(text.trim().startsWith("{")){try{claim=JSON.parse(text);}catch{throw new Error("Implementation return JSON is invalid");}if(!isImplementationCompletionClaim(claim))throw new Error("Implementation return claim has an invalid structure");}data=await workflow.perform({kind:"return-implementation",runId:rest[0]!,taskId:rest[1]!,claim,idempotencyKey:rest[2]!});break;}
+      case "evaluate-return": {if(rest.length<4)throw new Error("Usage: lw workflow evaluate-return <RUN> <TASK> <retry-implementation|reconcile|satisfactory> <IDEMPOTENCY_KEY> [JSON_CONTEXT_OR_REASON]");const [runId,taskId,outcome,idempotencyKey,...detail]=rest;if(!["retry-implementation","reconcile","satisfactory"].includes(outcome!))throw new Error("Unsupported implementation-return outcome");let context:Record<string,unknown>={};if(detail.length){const value=detail.join(" ");try{context=JSON.parse(value);}catch{context={reason:value};}}data=await workflow.perform({kind:"evaluate-implementation-return",runId:runId!,taskId:taskId!,outcome:outcome as "retry-implementation"|"reconcile"|"satisfactory",idempotencyKey:idempotencyKey!,failedVerifications:Array.isArray(context.failedVerifications)?context.failedVerifications as string[]:undefined,blockingFindings:Array.isArray(context.blockingFindings)?context.blockingFindings as string[]:undefined,knownGaps:Array.isArray(context.knownGaps)?context.knownGaps as string[]:undefined,reason:typeof context.reason==="string"?context.reason:undefined});break;}
+      case "interrupt": if(!rest[0])throw new Error("Usage: lw workflow interrupt <RUN> [REASON]");else data=await workflow.perform({kind:"interrupt",runId:rest[0],reason:rest.slice(1).join(" ")||"Interrupted by operator"});break;
+      case "resume": if(!rest[0])throw new Error("Usage: lw workflow resume <RUN>");else data=await workflow.perform({kind:"resume",runId:rest[0]});break;
+      case "retry": if(rest.length<2)throw new Error("Usage: lw workflow retry <RUN> <ATTEMPT>");else data=await workflow.perform({kind:"retry",runId:rest[0]!,attemptId:rest[1]!});break;
+      case "cancel": if(!rest[0])throw new Error("Usage: lw workflow cancel <RUN> [REASON]");else data=await workflow.perform({kind:"cancel",runId:rest[0],reason:rest.slice(1).join(" ")||"Cancelled by operator"});break;
+      case "reconcile": if(rest.length<3)throw new Error("Usage: lw workflow reconcile <RUN> <ROUTE> <REASON>");else data=await workflow.perform({kind:"reconcile",runId:rest[0]!,route:rest[1] as WorkflowReconciliationRoute,reason:rest.slice(2).join(" ")});break;
+      case "complete": if(!rest[0])throw new Error("Usage: lw workflow complete <RUN>");else data=await workflow.perform({kind:"complete",runId:rest[0]});break;
       default: throw new Error("Usage: lw workflow <status|start|capture|approve|handoff|return|evaluate-return|interrupt|resume|retry|cancel|reconcile|complete> ...");
     }
     return {exitCode:0,data:{ok:true,...(typeof data==="object"&&data?data:{result:data})},lines:[JSON.stringify(data,null,2)]};

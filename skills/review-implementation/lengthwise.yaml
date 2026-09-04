@@ -1,0 +1,10 @@
+schemaVersion: 1
+skillVersion: 1
+workflowContractVersion: 1
+bindings: [review-implementation]
+context:
+  required: [current-workflow-action, task, accepted-build-contract, bounded-project-context, prior-attempt, implementation-completion-claim, verification-definitions, evidence]
+  optional: [authoritative-artifacts, decision-authority, graph-findings]
+outcomes: [implementation-review]
+postChecks: [applicable-verification, evidence-applicability, workflow-routing]
+escalations: [insufficient-evidence, stale-build-contract, governing-context-conflict, locked-decision-conflict]

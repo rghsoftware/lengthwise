@@ -3,6 +3,9 @@ import { runCli } from "./main.ts";
 import { createFixtureRepo, removeFixtureRepo } from "../test-support/fixture-repo.ts";
 import { INDEX_DB_PATH } from "../index/sqlite-index.ts";
 import { DEFAULT_WORKBENCH_PORT } from "../workbench/server.ts";
+import { buildProjectGraph } from "../graph/build.ts";
+import { renderContractArtifact } from "../workflow/contracts.ts";
+import { WorkflowCoordinator } from "../workflow/coordinator.ts";
 
 const cleanup: string[] = [];
 afterEach(async () => {
@@ -195,6 +198,10 @@ test("workflow CLI starts, reports, and cancels a persisted run",async()=>{
   const started=await runCli(["workflow","start","F-CLI"],root);expect(started.exitCode).toBe(0);const runId=(started.data as any).run.id;
   const status=await runCli(["workflow","status","F-CLI"],root);expect((status.data as any).run.id).toBe(runId);expect((status.data as any).assessment.actions.length).toBeGreaterThan(0);
   const cancelled=await runCli(["workflow","cancel",runId,"operator request"],root);expect((cancelled.data as any).state).toBe("cancelled");
+});
+
+test("workflow CLI preserves a structured implementation completion claim",async()=>{
+  const model=`${ENTITIES}\n  - { id: F-RETURN, type: feature, title: CLI return, lifecycle: active, significance: S, relationships: [{ type: addresses, to: REQ-001 }] }\n  - { id: PLAN-RETURN, type: plan, title: CLI plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-001 }] }\n`;const root=await createFixtureRepo({".lengthwise/project.yaml":CONFIG,"engineering/entities.yaml":model});cleanup.push(root);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture failed");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-001"]));const coordinator=await WorkflowCoordinator.open(root);const run=await coordinator.start("F-RETURN");let assessment=await coordinator.assess("F-RETURN");await coordinator.approve(run.id,"specification",assessment.gates.specification.fingerprint);assessment=await coordinator.assess("F-RETURN");await coordinator.approve(run.id,"build-contract",assessment.gates["build-contract"].fingerprint);await coordinator.handoff(run.id,"TASK-001","handoff");coordinator.close();const claim={summary:"Structured CLI return",claims:{requirements:[{id:"REQ-001",state:"addressed"}],acceptanceCriteria:[{id:"AC-001-01",state:"needs-verification"}],lockedDecisions:[]},knownGaps:[],changedFiles:["src/cli.ts"],checks:[{name:"tests",outcome:"passed",result:"All passed",command:"bun test"}],externalVerifications:[{verificationId:"VER-001",description:"Independent review"}]};const returned=await runCli(["workflow","return",run.id,"TASK-001","return",JSON.stringify(claim)],root);expect(returned.exitCode).toBe(0);const reopened=await WorkflowCoordinator.open(root);const stored=(await reopened.assess("F-RETURN")).implementation.pendingReturns[0]?.claim;expect(stored).toEqual(expect.objectContaining({...claim,taskId:"TASK-001",implementationAttemptId:expect.any(String),acceptedBuildContract:expect.objectContaining({id:"BC-TASK-001",fingerprint:expect.any(String)})}));reopened.close();
 });
 
 // Dogfood: the real Lengthwise repository's own artifacts, end to end through the CLI.

@@ -9,6 +9,8 @@ import {
   STANDARD_SKILL_IDS,
 } from "./constants.ts";
 import { canonicalSkillDigest, comparePosixRelativePaths } from "./digest.ts";
+import { STANDARD_SKILL_CONTRACTS } from "./contracts.ts";
+import type { StandardSkillId } from "./constants.ts";
 import {
   SEMANTIC_ACTION_BINDINGS,
   SKILL_CONTEXT_SLOTS,
@@ -381,6 +383,57 @@ function parseManifest(packagePath: string, text: string, diagnostics: SkillDiag
   return { manifest: validation.success ? validation.data : undefined, bindings };
 }
 
+function validateStandardSkillContract(
+  packagePath: string,
+  directoryName: StandardSkillId,
+  manifest: CanonicalSkillManifest,
+  diagnostics: SkillDiagnostic[],
+): void {
+  const contract = STANDARD_SKILL_CONTRACTS[directoryName];
+  if (
+    manifest.bindings.length !== 1 ||
+    manifest.bindings[0] !== contract.semanticAction
+  )
+    diagnostics.push(
+      diagnostic(
+        packagePath,
+        "skill/action-binding-mismatch",
+        `${directoryName} must bind exactly ${contract.semanticAction}.`,
+        "bindings",
+      ),
+    );
+  for (const slot of contract.requiredContext)
+    if (!manifest.context.required.includes(slot))
+      diagnostics.push(
+        diagnostic(
+          packagePath,
+          "skill/action-required-context-missing",
+          `${directoryName} must require context slot ${slot}.`,
+          "context.required",
+        ),
+      );
+  for (const outcome of contract.requiredOutcomes)
+    if (!manifest.outcomes.includes(outcome))
+      diagnostics.push(
+        diagnostic(
+          packagePath,
+          "skill/action-outcome-missing",
+          `${directoryName} must declare outcome ${outcome}.`,
+          "outcomes",
+        ),
+      );
+  for (const postCheck of contract.requiredPostChecks)
+    if (!manifest.postChecks.includes(postCheck))
+      diagnostics.push(
+        diagnostic(
+          packagePath,
+          "skill/action-post-check-missing",
+          `${directoryName} must declare post-check ${postCheck}.`,
+          "postChecks",
+        ),
+      );
+}
+
 async function collectPackageFiles(packagePath: string, diagnostics: SkillDiagnostic[]): Promise<CanonicalSkillFile[]> {
   const canonicalRoot = await realpath(packagePath);
   const files: CanonicalSkillFile[] = [];
@@ -518,6 +571,16 @@ async function loadPackage(packagePath: string, directoryName: string): Promise<
   const parsedManifest = manifestText !== undefined
     ? parseManifest(packagePath, manifestText, diagnostics)
     : { bindings: [] as string[] };
+  if (
+    parsedManifest.manifest &&
+    (STANDARD_SKILL_IDS as readonly string[]).includes(directoryName)
+  )
+    validateStandardSkillContract(
+      packagePath,
+      directoryName as StandardSkillId,
+      parsedManifest.manifest,
+      diagnostics,
+    );
   validateMarkdownReferences(packagePath, files, diagnostics, decodedFiles);
 
   const result: PackageLoadResult = {

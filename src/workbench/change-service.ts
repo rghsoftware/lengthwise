@@ -1,7 +1,7 @@
 import type { Diagnostic } from "../diagnostics.ts";
 import type { Entity } from "../domain/entities.ts";
 import type { ProjectGraph } from "../graph/project-graph.ts";
-import { entityLabel } from "./query-service.ts";
+import { entityLabel } from "../application/project-query-service.ts";
 import type { ModelChange } from "./types.ts";
 
 function edgeKey(edge: { from: string; type: string; to: string }): string {

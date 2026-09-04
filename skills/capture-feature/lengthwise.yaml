@@ -1,0 +1,10 @@
+schemaVersion: 1
+skillVersion: 1
+workflowContractVersion: 1
+bindings: [capture-feature]
+context:
+  required: [current-workflow-action]
+  optional: [bounded-project-context, authoritative-artifacts, questions]
+outcomes: [feature-frame]
+postChecks: [project-graph]
+escalations: [material-product-decision, authority-boundary-exceeded]

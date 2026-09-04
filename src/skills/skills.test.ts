@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { symlink, utimes } from "node:fs/promises";
 import { createFixtureRepo, removeFixtureRepo } from "../test-support/fixture-repo.ts";
 import { STANDARD_SKILL_IDS } from "./constants.ts";
+import { STANDARD_SKILL_CONTRACTS } from "./contracts.ts";
 import {
   SKILL_DIGEST_RULE,
   canonicalSkillDigest,
@@ -10,31 +11,29 @@ import {
 } from "./digest.ts";
 import { loadCanonicalSkillRegistry } from "./load.ts";
 import { assessInstalledSkill } from "./provenance.ts";
-import type { CanonicalSkillFile, CurrentRenderedSkillIdentity, InstalledSkillProvenance } from "./types.ts";
+import {
+  SEMANTIC_ACTION_BINDINGS,
+  SKILL_CONTEXT_SLOTS,
+  SKILL_ESCALATION_REASONS,
+  SKILL_OUTCOME_KINDS,
+  SKILL_POST_CHECKS,
+  SUPPORTED_WORKFLOW_CONTRACT_VERSIONS,
+  type CanonicalSkillFile,
+  type CurrentRenderedSkillIdentity,
+  type InstalledSkillProvenance,
+} from "./types.ts";
 
 const cleanup: string[] = [];
 afterEach(async () => {
   while (cleanup.length > 0) await removeFixtureRepo(cleanup.pop()!);
 });
 
-const bindings: Record<(typeof STANDARD_SKILL_IDS)[number], string> = {
-  "capture-feature": "capture-feature",
-  "specify-feature": "specify-feature",
-  "clarify-feature": "clarify-feature",
-  "review-specification": "review-specification",
-  "plan-feature": "plan-feature",
-  "design-verification": "design-verification",
-  "review-build-readiness": "review-build-readiness",
-  "implement-build-contract": "implementation-attempt",
-  "review-implementation": "review-implementation",
-  "review-verification": "review-verification",
-  "reconcile-feature": "reconcile-feature",
-};
-
 function skillFiles(id: (typeof STANDARD_SKILL_IDS)[number]): Record<string, string> {
+  const contract = STANDARD_SKILL_CONTRACTS[id];
+  const list = (values: readonly string[]) => values.map((value) => `  - ${value}`).join("\n");
   return {
     [`${id}/SKILL.md`]: `---\nname: ${id}\ndescription: Portable methodology for ${id}.\n---\n# ${id}\n\nUse the supplied authority and bounded context.\n\n[Details](references/details.md)\n`,
-    [`${id}/lengthwise.yaml`]: `schemaVersion: 1\nskillVersion: 1\nworkflowContractVersion: 1\nbindings:\n  - ${bindings[id]}\ncontext:\n  required:\n    - current-workflow-action\n  optional:\n    - bounded-project-context\noutcomes:\n  - specification-update\npostChecks:\n  - project-graph\nescalations:\n  - locked-decision-conflict\n`,
+    [`${id}/lengthwise.yaml`]: `schemaVersion: 1\nskillVersion: 1\nworkflowContractVersion: 1\nbindings:\n${list([contract.semanticAction])}\ncontext:\n  required:\n${contract.requiredContext.map((value) => `    - ${value}`).join("\n")}\n  optional: []\noutcomes:\n${list(contract.requiredOutcomes)}\npostChecks:\n${list(contract.requiredPostChecks)}\nescalations:\n  - locked-decision-conflict\n`,
     [`${id}/references/details.md`]: `# Supporting methodology for ${id}\n`,
   };
 }
@@ -80,6 +79,44 @@ test("loads exactly the eleven bundled Agent Skills packages from one canonical 
   expect(implementation.files.map((file) => file.path)).toContain("references/details.md");
   expect(implementation.manifest).not.toHaveProperty("description");
   expect(implementation.manifest).not.toHaveProperty("methodology");
+});
+
+test("standard skills must satisfy their semantic action task-package contracts", async () => {
+  const root = await fixture();
+  const path = "implement-build-contract/lengthwise.yaml";
+  const manifest = await Bun.file(`${root}/${path}`).text();
+  await overwrite(root, path, manifest
+    .replace("    - accepted-build-contract\n", "")
+    .replace("  - implementation-completion-claim\n", "  - repository-change\n")
+    .replace("  - contract-current\n", ""));
+  const result = await loadCanonicalSkillRegistry(root);
+  expect(codes(result)).toEqual(expect.arrayContaining([
+    "skill/action-required-context-missing",
+    "skill/action-outcome-missing",
+    "skill/action-post-check-missing",
+  ]));
+});
+
+test("exported canonical validation policy is immutable at runtime", () => {
+  expect([
+    STANDARD_SKILL_IDS,
+    SUPPORTED_WORKFLOW_CONTRACT_VERSIONS,
+    SEMANTIC_ACTION_BINDINGS,
+    SKILL_CONTEXT_SLOTS,
+    SKILL_OUTCOME_KINDS,
+    SKILL_POST_CHECKS,
+    SKILL_ESCALATION_REASONS,
+    STANDARD_SKILL_CONTRACTS,
+    ...Object.values(STANDARD_SKILL_CONTRACTS),
+    ...Object.values(STANDARD_SKILL_CONTRACTS).flatMap((contract) => [
+      contract.requiredContext,
+      contract.requiredOutcomes,
+      contract.requiredPostChecks,
+    ]),
+  ].every(Object.isFrozen)).toBe(true);
+  expect(() =>
+    (STANDARD_SKILL_CONTRACTS["implement-build-contract"].requiredContext as string[]).pop(),
+  ).toThrow();
 });
 
 // AC-039-03, AC-048-01, AC-048-02, AC-NFR-026-02, AC-NFR-026-03

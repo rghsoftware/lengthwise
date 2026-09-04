@@ -1,0 +1,10 @@
+schemaVersion: 1
+skillVersion: 1
+workflowContractVersion: 1
+bindings: [review-build-readiness]
+context:
+  required: [current-workflow-action, feature, bounded-project-context]
+  optional: [task, plan, accepted-build-contract, decision-authority, verification-definitions, graph-findings]
+outcomes: [build-readiness-review]
+postChecks: [build-contract-generation, readiness]
+escalations: [conflicting-governing-requirements, locked-decision-conflict, stale-build-contract, authority-boundary-exceeded]

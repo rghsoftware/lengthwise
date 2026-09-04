@@ -1,4 +1,4 @@
-export const STANDARD_SKILL_IDS = [
+export const STANDARD_SKILL_IDS = Object.freeze([
   "capture-feature",
   "specify-feature",
   "clarify-feature",
@@ -10,7 +10,7 @@ export const STANDARD_SKILL_IDS = [
   "review-implementation",
   "review-verification",
   "reconcile-feature",
-] as const;
+] as const);
 
 export type StandardSkillId = (typeof STANDARD_SKILL_IDS)[number];
 

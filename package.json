@@ -1,12 +1,20 @@
 {
   "name": "lengthwise",
   "module": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./application": "./src/application/index.ts",
+    "./ai": "./src/ai/index.ts",
+    "./skills": "./src/skills/index.ts"
+  },
   "bin": {
     "lw": "src/cli/main.ts"
   },
   "scripts": {
     "lw": "bun src/cli/main.ts",
-    "build:workbench": "cd workbench-ui && bunx vite build"
+    "build:workbench": "cd workbench-ui && bunx vite build",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
     "@ark-ui/svelte": "^5.24.1",

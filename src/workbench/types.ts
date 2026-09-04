@@ -1,29 +1,7 @@
 import type { Diagnostic } from "../diagnostics.ts";
-import type { Entity, EntityType } from "../domain/entities.ts";
+import type { EntitySummary } from "../application/project-types.ts";
 
-export interface EntitySummary {
-  id: string;
-  type: EntityType;
-  lifecycle: string;
-  label: string;
-  source: Entity["source"];
-}
-
-export interface RelationshipView {
-  direction: "incoming" | "outgoing";
-  type: string;
-  label: string;
-  counterpart: EntitySummary | { id: string; missing: true };
-  provenance: string;
-}
-
-export interface EntityDetail {
-  entity: Entity;
-  label: string;
-  authoredProperties: Record<string, unknown>;
-  derivedState: Record<string, unknown>;
-  relationships: RelationshipView[];
-}
+export type { EntityDetail, EntitySummary, RelationshipView } from "../application/project-types.ts";
 
 export type ModelChange =
   | { kind: "entity-added" | "entity-removed"; entityId: string; entityType: string; label: string }

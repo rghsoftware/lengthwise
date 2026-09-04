@@ -1,9 +1,9 @@
 import type { tags } from "typia";
 
 export const SUPPORTED_SKILL_SCHEMA_VERSION = 1 as const;
-export const SUPPORTED_WORKFLOW_CONTRACT_VERSIONS = [1] as const;
+export const SUPPORTED_WORKFLOW_CONTRACT_VERSIONS = Object.freeze([1] as const);
 
-export const SEMANTIC_ACTION_BINDINGS = [
+export const SEMANTIC_ACTION_BINDINGS = Object.freeze([
   "capture-feature",
   "specify-feature",
   "clarify-feature",
@@ -15,9 +15,9 @@ export const SEMANTIC_ACTION_BINDINGS = [
   "review-implementation",
   "review-verification",
   "reconcile-feature",
-] as const;
+] as const);
 
-export const SKILL_CONTEXT_SLOTS = [
+export const SKILL_CONTEXT_SLOTS = Object.freeze([
   "current-workflow-action",
   "feature",
   "task",
@@ -33,9 +33,9 @@ export const SKILL_CONTEXT_SLOTS = [
   "verification-definitions",
   "evidence",
   "graph-findings",
-] as const;
+] as const);
 
-export const SKILL_OUTCOME_KINDS = [
+export const SKILL_OUTCOME_KINDS = Object.freeze([
   "feature-frame",
   "specification-update",
   "clarification-resolution",
@@ -48,9 +48,9 @@ export const SKILL_OUTCOME_KINDS = [
   "implementation-review",
   "verification-review",
   "reconciliation-proposal",
-] as const;
+] as const);
 
-export const SKILL_POST_CHECKS = [
+export const SKILL_POST_CHECKS = Object.freeze([
   "project-graph",
   "traceability",
   "specification-eligibility",
@@ -63,9 +63,9 @@ export const SKILL_POST_CHECKS = [
   "readiness",
   "completion-eligibility",
   "workflow-routing",
-] as const;
+] as const);
 
-export const SKILL_ESCALATION_REASONS = [
+export const SKILL_ESCALATION_REASONS = Object.freeze([
   "material-product-decision",
   "conflicting-governing-requirements",
   "locked-decision-conflict",
@@ -74,7 +74,7 @@ export const SKILL_ESCALATION_REASONS = [
   "insufficient-evidence",
   "stale-build-contract",
   "governing-context-conflict",
-] as const;
+] as const);
 
 export type SemanticActionBinding = (typeof SEMANTIC_ACTION_BINDINGS)[number];
 export type SkillContextSlot = (typeof SKILL_CONTEXT_SLOTS)[number];

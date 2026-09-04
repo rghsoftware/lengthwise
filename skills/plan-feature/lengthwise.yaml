@@ -1,0 +1,10 @@
+schemaVersion: 1
+skillVersion: 1
+workflowContractVersion: 1
+bindings: [plan-feature]
+context:
+  required: [current-workflow-action, feature, bounded-project-context]
+  optional: [authoritative-artifacts, decision-authority, questions, verification-definitions, graph-findings]
+outcomes: [implementation-plan]
+postChecks: [task-dag, traceability]
+escalations: [material-product-decision, conflicting-governing-requirements, authority-boundary-exceeded]

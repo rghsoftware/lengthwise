@@ -10,11 +10,12 @@ import { runChecks } from "../checks/run.ts";
 import { ProjectGraph } from "../graph/project-graph.ts";
 import { errorDiagnostic } from "../diagnostics.ts";
 import { renderContractArtifact } from "../workflow/contracts.ts";
+import { WorkflowStateStore } from "../workflow/state-store.ts";
 
 const cleanup: string[] = [];
-const servers: Array<ReturnType<typeof Bun.serve>> = [];
+const servers: Array<() => void> = [];
 afterEach(async () => {
-  while (servers.length) servers.pop()!.stop(true);
+  while (servers.length) servers.pop()!();
   while (cleanup.length) await removeFixtureRepo(cleanup.pop()!);
 });
 
@@ -241,7 +242,7 @@ test("HTTP API is loopback, addressable, same-origin protected, and serves the b
   const root = await fixture();
   const result = await startWorkbenchServer(root, { port: 0 });
   if (!result.ok) throw new Error("fixture server did not start");
-  servers.push(result.server);
+  servers.push(result.close);
   expect(result.url.startsWith("http://127.0.0.1:")).toBe(true);
 
   const snapshot = await fetch(`${result.url}/api/snapshot`);
@@ -258,13 +259,25 @@ test("HTTP API is loopback, addressable, same-origin protected, and serves the b
     body: JSON.stringify({ path: artifact.path, content: artifact.content, expectedVersion: artifact.version }),
   });
   expect(rejected.status).toBe(403);
+  const malformed = await fetch(`${result.url}/api/workflow/action`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: result.url },
+    body: "null",
+  });
+  expect(malformed.status).toBe(400);
+  const invalidClaim = await fetch(`${result.url}/api/workflow/action`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: result.url },
+    body: JSON.stringify({ runId: "RUN", action: "return", taskId: "TASK", claim: [], idempotencyKey: "key" }),
+  });
+  expect(invalidClaim.status).toBe(400);
 });
 
 test("server reports an unavailable requested port without disturbing the running server", async () => {
   const root = await fixture();
   const first = await startWorkbenchServer(root, { port: 0 });
   if (!first.ok) throw new Error("fixture server did not start");
-  servers.push(first.server);
+  servers.push(first.close);
   const second = await startWorkbenchServer(root, { port: first.server.port });
   expect(second.ok).toBe(false);
   if (!second.ok) expect(second.diagnostics[0]?.code).toBe("server/start-failed");
@@ -274,9 +287,11 @@ test("server reports an unavailable requested port without disturbing the runnin
 test("workflow API assesses, starts, persists, and protects feature runs", async () => {
   const root = await fixture();
   await Bun.write(`${root}/engineering/feature.yaml`, `lengthwise: 1\nentities:\n  - { id: F-TEST, type: feature, title: Workflow test, lifecycle: draft, significance: S }\n  - { id: F-DONE, type: feature, title: Completed workflow, lifecycle: complete, significance: S }\n`);
+  const state = new WorkflowStateStore(`${root}/.lengthwise/state.db`);
+  const retainedCompletedRun = state.start("F-DONE", "specify");
+  state.close();
   const result = await startWorkbenchServer(root, { port: 0 });
-  if (!result.ok) throw new Error("fixture server did not start"); servers.push(result.server);
-  const retainedCompletedRun = result.workflow.state.start("F-DONE", "specify");
+  if (!result.ok) throw new Error("fixture server did not start"); servers.push(result.close);
   const assessment = await fetch(`${result.url}/api/workflow/F-TEST`); expect(assessment.status).toBe(200);
   const assessed=(await assessment.json() as any).assessment;
   expect(assessed.specificationEligible).toBe(false);
@@ -287,17 +302,16 @@ test("workflow API assesses, starts, persists, and protects feature runs", async
   const started = await fetch(`${result.url}/api/workflow`, {method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({featureId:"F-TEST"})}); expect(started.status).toBe(201);
   const body=await started.json() as any; expect(body.run.featureId).toBe("F-TEST");
   const activeRuns=await fetch(`${result.url}/api/workflows`);expect(activeRuns.status).toBe(200);expect((await activeRuns.json() as any).runs).toEqual([expect.objectContaining({id:body.run.id,featureId:"F-TEST",activity:"specify",state:"running"})]);
-  expect(result.workflow.state.get(retainedCompletedRun.id)?.state).toBe("running");
+  expect(result.workflow.getRun(retainedCompletedRun.id)?.state).toBe("running");
   const resumed=await fetch(`${result.url}/api/workflow/F-TEST`); expect((await resumed.json() as any).run.id).toBe(body.run.id);
   const untrustedAction=await fetch(`${result.url}/api/workflow/action`,{method:"POST",headers:{"content-type":"application/json",origin:"https://untrusted.example"},body:JSON.stringify({runId:body.run.id,action:"cancel",reason:"no"})});expect(untrustedAction.status).toBe(403);
   const action=await fetch(`${result.url}/api/workflow/action`,{method:"POST",headers:{"content-type":"application/json",origin:result.url},body:JSON.stringify({runId:body.run.id,action:"cancel",reason:"HTTP test"})});expect(action.status).toBe(200);expect((await action.json() as any).result.state).toBe("cancelled");
   const terminal=await fetch(`${result.url}/api/workflow/F-TEST`);const terminalBody=await terminal.json() as any;expect(terminalBody.run.state).toBe("cancelled");expect(terminalBody.runHistorical).toBe(true);
   expect((await (await fetch(`${result.url}/api/workflows`)).json() as any).runs).toEqual([]);
-  result.workflow.close();
 });
 
 test("workflow API records structured returns and routes verification omissions to retry", async () => {
-  const root=await fixture();await Bun.write(`${root}/engineering/feature.yaml`,`lengthwise: 1\nentities:\n  - { id: F-RETRY, type: feature, title: Retry workflow, lifecycle: active, significance: S, relationships: [{ type: addresses, to: REQ-001 }] }\n  - { id: PLAN-RETRY, type: plan, title: Retry plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-001 }] }\n`);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture did not build");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-001"]));
-  const result=await startWorkbenchServer(root,{port:0});if(!result.ok)throw new Error("fixture server did not start");servers.push(result.server);const headers={"content-type":"application/json",origin:result.url};const started=await (await fetch(`${result.url}/api/workflow`,{method:"POST",headers,body:JSON.stringify({featureId:"F-RETRY"})})).json() as any;let assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;for(const gate of ["specification","build-contract"]){const approved=await fetch(`${result.url}/api/workflow/gate`,{method:"POST",headers,body:JSON.stringify({runId:started.run.id,gate,fingerprint:assessment.gates[gate].fingerprint})});expect(approved.status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;}
-  const action=async(body:Record<string,unknown>)=>fetch(`${result.url}/api/workflow/action`,{method:"POST",headers,body:JSON.stringify({runId:started.run.id,...body})});expect((await action({action:"handoff",taskId:"TASK-001",idempotencyKey:"handoff"})).status).toBe(200);expect((await action({action:"return",taskId:"TASK-001",claim:{summary:"Complete",knownGaps:[],changedFiles:["src/retry.ts"]},idempotencyKey:"return"})).status).toBe(200);const routed=await action({action:"evaluate-return",taskId:"TASK-001",outcome:"retry-implementation",failedVerifications:["VER-001"],blockingFindings:["Required behavior absent"],idempotencyKey:"route"});expect(routed.status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;expect(assessment.implementation.retryContexts[0]).toEqual(expect.objectContaining({taskId:"TASK-001",affectedAcceptanceCriteria:["AC-001-01"],contractCurrent:true}));expect(assessment.actions.find((value:any)=>value.id==="handoff:TASK-001")?.eligible).toBe(true);
+  const root=await fixture();await Bun.write(`${root}/engineering/feature.yaml`,`lengthwise: 1\nentities:\n  - { id: F-RETRY, type: feature, title: Retry workflow, lifecycle: active, significance: S, relationships: [{ type: addresses, to: REQ-001 }] }\n  - { id: PLAN-RETRY, type: plan, title: Retry plan, lifecycle: accepted, relationships: [{ type: contains, to: TASK-001 }] }\n  - { id: DR-RETRY, type: decision, title: Preserve retry authority, lifecycle: accepted, authority: LOCKED, decision: Keep retries contract-scoped, relationships: [{ type: governs, to: TASK-001 }] }\n`);const built=await buildProjectGraph(root);if(!built.ok)throw new Error("fixture did not build");await Bun.write(`${root}/engineering/contracts.yaml`,renderContractArtifact(built.graph,["TASK-001"]));
+  const result=await startWorkbenchServer(root,{port:0});if(!result.ok)throw new Error("fixture server did not start");servers.push(result.close);const headers={"content-type":"application/json",origin:result.url};const started=await (await fetch(`${result.url}/api/workflow`,{method:"POST",headers,body:JSON.stringify({featureId:"F-RETRY"})})).json() as any;let assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;for(const gate of ["specification","build-contract"]){const approved=await fetch(`${result.url}/api/workflow/gate`,{method:"POST",headers,body:JSON.stringify({runId:started.run.id,gate,fingerprint:assessment.gates[gate].fingerprint})});expect(approved.status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;}
+  const action=async(body:Record<string,unknown>)=>fetch(`${result.url}/api/workflow/action`,{method:"POST",headers,body:JSON.stringify({runId:started.run.id,...body})});expect((await action({action:"handoff",taskId:"TASK-001",idempotencyKey:"handoff"})).status).toBe(200);const claim={summary:"Complete",claims:{requirements:[{id:"REQ-001",state:"addressed"}],acceptanceCriteria:[{id:"AC-001-01",state:"needs-verification"}],lockedDecisions:[{id:"DR-RETRY",state:"respected"}]},knownGaps:["Independent review pending"],changedFiles:["src/retry.ts"],checks:[{name:"tests",outcome:"failed",result:"Required behavior absent",command:"bun test"}],externalVerifications:[{verificationId:"VER-001",description:"Confirm visible behavior"}]};expect((await action({action:"return",taskId:"TASK-001",claim,idempotencyKey:"return"})).status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;expect(assessment.implementation.pendingReturns[0].claim).toEqual(expect.objectContaining({...claim,taskId:"TASK-001",implementationAttemptId:expect.any(String),acceptedBuildContract:expect.objectContaining({id:"BC-TASK-001",fingerprint:expect.any(String)})}));const routed=await action({action:"evaluate-return",taskId:"TASK-001",outcome:"retry-implementation",failedVerifications:["VER-001"],blockingFindings:["Required behavior absent"],idempotencyKey:"route"});expect(routed.status).toBe(200);assessment=(await (await fetch(`${result.url}/api/workflow/F-RETRY`)).json() as any).assessment;expect(assessment.implementation.retryContexts[0]).toEqual(expect.objectContaining({taskId:"TASK-001",affectedAcceptanceCriteria:["AC-001-01"],contractCurrent:true,knownGaps:["Independent review pending"]}));expect(assessment.actions.find((value:any)=>value.id==="handoff:TASK-001")?.eligible).toBe(true);
 });

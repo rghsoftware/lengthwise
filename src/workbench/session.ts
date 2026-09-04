@@ -1,18 +1,19 @@
-import { buildProjectGraph } from "../graph/build.ts";
 import type { ProjectGraph } from "../graph/project-graph.ts";
-import { runChecks } from "../checks/run.ts";
 import type { Diagnostic } from "../diagnostics.ts";
 import type { ProjectConfig } from "../config/types.ts";
+import { evaluateProject } from "../application/project-evaluation.ts";
+import { ProjectQueryService } from "../application/project-query-service.ts";
+import type { EntityDetail, EntitySummary } from "../application/project-types.ts";
 import { ArtifactService } from "./artifact-service.ts";
 import { compareSuccessfulGraphs } from "./change-service.ts";
-import { WorkbenchQueryService } from "./query-service.ts";
-import type { ArtifactDocument, EntityDetail, EntitySummary, ModelChange, WorkbenchSnapshot } from "./types.ts";
+import type { ArtifactDocument, ModelChange, WorkbenchSnapshot } from "./types.ts";
 import { ENTITY_LIFECYCLES, updateLifecycleContent } from "./lifecycle-service.ts";
 
 interface SuccessfulBuild {
   graph: ProjectGraph;
   config: ProjectConfig;
   diagnostics: Diagnostic[];
+  repositoryValid: boolean;
 }
 
 export type SessionStartResult =
@@ -31,19 +32,27 @@ export class WorkbenchSession {
     private current: SuccessfulBuild,
     readonly artifacts: ArtifactService,
   ) {
-    this.repositoryValid = !current.diagnostics.some((diagnostic) => diagnostic.severity === "error");
+    this.repositoryValid = current.repositoryValid;
   }
 
   static async start(repoRoot: string): Promise<SessionStartResult> {
-    const built = await buildProjectGraph(repoRoot);
-    if (!built.ok || built.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
-      return { ok: false, diagnostics: built.diagnostics };
+    const evaluated = await evaluateProject(repoRoot);
+    if (!evaluated.graphAvailable || evaluated.buildDiagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+      return { ok: false, diagnostics: evaluated.buildDiagnostics };
     }
-    const diagnostics = runChecks(built.graph, built.config);
-    const artifacts = await ArtifactService.create(repoRoot, built.config);
+    const artifacts = await ArtifactService.create(repoRoot, evaluated.config);
     return {
       ok: true,
-      session: new WorkbenchSession(repoRoot, { graph: built.graph, config: built.config, diagnostics }, artifacts),
+      session: new WorkbenchSession(
+        repoRoot,
+        {
+          graph: evaluated.graph,
+          config: evaluated.config,
+          diagnostics: evaluated.checkDiagnostics,
+          repositoryValid: evaluated.repositoryValid,
+        },
+        artifacts,
+      ),
     };
   }
 
@@ -96,31 +105,31 @@ export class WorkbenchSession {
   }
 
   private async rebuild(): Promise<void> {
-    const built = await buildProjectGraph(this.repoRoot);
-    const buildDiagnostics = built.ok ? built.diagnostics : built.diagnostics;
-    if (!built.ok || buildDiagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+    const evaluated = await evaluateProject(this.repoRoot);
+    if (!evaluated.graphAvailable || evaluated.buildDiagnostics.some((diagnostic) => diagnostic.severity === "error")) {
       this.repositoryValid = false;
       this.usingRetainedGraph = true;
-      this.failureDiagnostics = buildDiagnostics;
+      this.failureDiagnostics = evaluated.buildDiagnostics;
       this.changes = [];
       this.revision += 1;
       return;
     }
 
     const next: SuccessfulBuild = {
-      graph: built.graph,
-      config: built.config,
-      diagnostics: runChecks(built.graph, built.config),
+      graph: evaluated.graph,
+      config: evaluated.config,
+      diagnostics: evaluated.checkDiagnostics,
+      repositoryValid: evaluated.repositoryValid,
     };
     this.changes = compareSuccessfulGraphs(this.current, next);
     this.current = next;
-    this.repositoryValid = !next.diagnostics.some((diagnostic) => diagnostic.severity === "error");
+    this.repositoryValid = next.repositoryValid;
     this.usingRetainedGraph = false;
     this.failureDiagnostics = [];
     this.revision += 1;
   }
 
-  private query(): WorkbenchQueryService {
-    return new WorkbenchQueryService(this.current.graph);
+  private query(): ProjectQueryService {
+    return new ProjectQueryService(this.current.graph);
   }
 }
